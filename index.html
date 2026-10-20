@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<title>Правка PDF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky two-row toolbar over a "light table" desk; pages in a centred column, list of edits in a side rail (stacks under on phones). */
+:root{
+  --desk:#E3E7EC; --panel:#FAFBFC; --ink:#18202B; --muted:#5A6576; --rule:#CDD3DC;
+  --accent:#2346B0; --accent-ink:#FFFFFF; --mark:#F2C230; --mark-soft:rgba(242,194,48,.16);
+  --danger:#B3261E; --ok:#1E7A46; --shadow:0 1px 2px rgba(20,30,50,.12),0 6px 24px rgba(20,30,50,.10);
+  --f-ui:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-data:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --desk:#13171D; --panel:#1B2129; --ink:#E6EAF0; --muted:#97A2B2; --rule:#2C3540;
+  --accent:#7D9BFF; --accent-ink:#0E1420; --mark:#E8C547; --mark-soft:rgba(232,197,71,.14);
+  --danger:#FF8A80; --ok:#6FD39B; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --desk:#13171D; --panel:#1B2129; --ink:#E6EAF0; --muted:#97A2B2; --rule:#2C3540;
+  --accent:#7D9BFF; --accent-ink:#0E1420; --mark:#E8C547; --mark-soft:rgba(232,197,71,.14);
+  --danger:#FF8A80; --ok:#6FD39B; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}
+
+html,body{height:100%}
+body{background:var(--desk);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--panel)}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--panel);border-bottom:1px solid var(--rule);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px;
+  display:flex;flex-direction:column;gap:8px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;letter-spacing:-.01em;margin-right:6px}
+.brand svg{flex:none}
+.file{display:flex;align-items:center;gap:6px;min-width:0;max-width:100%;color:var(--muted)}
+.file b{color:var(--ink);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:28ch}
+.chip{font-family:var(--f-data);font-size:11px;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--muted);white-space:nowrap}
+.chip.sample{border-color:var(--mark);color:var(--ink);background:var(--mark-soft)}
+.spacer{flex:1 1 auto}
+.btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:8px;border:1px solid var(--rule);background:transparent;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn[disabled]{opacity:.45;cursor:default}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden}
+.seg button{height:32px;padding:0 11px;border:0;background:transparent;cursor:pointer}
+.seg button+button{border-left:1px solid var(--rule)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.zoom{display:inline-flex;align-items:center;gap:2px}
+.zoom .btn{width:34px;padding:0;justify-content:center}
+.zoom output{font-family:var(--f-data);font-size:12px;min-width:46px;text-align:center;font-variant-numeric:tabular-nums}
+.find{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.find input{height:32px;border:1px solid var(--rule);border-radius:8px;padding:0 9px;background:var(--desk);width:15ch;min-width:0}
+.ctx{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;padding:6px 8px;border:1px dashed var(--mark);border-radius:10px;background:var(--mark-soft)}
+.ctx label{font-size:12px;color:var(--muted)}
+.ctx input[type=number]{width:62px;height:30px;border:1px solid var(--rule);border-radius:7px;padding:0 6px;background:var(--panel);font-family:var(--f-data);font-variant-numeric:tabular-nums}
+.ctx input[type=color]{width:34px;height:30px;padding:2px;border:1px solid var(--rule);border-radius:7px;background:var(--panel)}
+.ctx .tog{width:30px;height:30px;padding:0;justify-content:center;font-weight:700}
+.ctx .tog[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.ctx .src{font-family:var(--f-data);font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:34ch}
+.ctx .seg button{height:28px;padding:0 9px;font-size:12px}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 60px}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+.pages{display:flex;flex-direction:column;align-items:center;gap:22px;min-width:0;overflow-x:auto;padding-bottom:4px}
+.page{position:relative;background:#fff;box-shadow:var(--shadow);flex:none}
+.page canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.page .layer{position:absolute;inset:0}
+.page .num{position:absolute;left:0;top:-18px;font-family:var(--f-data);font-size:11px;color:var(--muted);white-space:nowrap}
+.mode-add .page .layer{cursor:crosshair}
+
+.ln{position:absolute;white-space:pre;color:transparent;border-radius:1px;cursor:text;outline:none;padding:0;margin:0;
+  transform-origin:0 0;caret-color:#111;min-width:2px}
+.ln:hover{box-shadow:0 0 0 1px rgba(35,70,176,.45);background:rgba(35,70,176,.06)}
+.ln.on,.ln.changed,.ln.added{color:var(--c,#000);background:var(--bg,#fff)}
+.ln.changed,.ln.added{box-shadow:0 0 0 1.5px var(--mark)}
+.ln.deleted{background:var(--bg,#fff);color:transparent;box-shadow:0 0 0 1.5px var(--danger)}
+.ln.on{box-shadow:0 0 0 2px var(--accent)!important}
+.ln.added{background:transparent}
+.ln.added:empty::before{content:"Новый текст";color:#9AA3B0}
+.hide-marks .ln.changed,.hide-marks .ln.added,.hide-marks .ln.deleted{box-shadow:none}
+
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 140px);display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (max-width:900px){.rail{position:static}}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h2{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0;display:flex;justify-content:space-between;align-items:center}
+.card h2 span{font-family:var(--f-data);letter-spacing:0;color:var(--ink)}
+.edits{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:46vh;overflow:auto}
+.edits li button{width:100%;text-align:left;border:0;background:transparent;padding:7px 8px;border-radius:8px;cursor:pointer;display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 8px}
+.edits li button:hover{background:var(--desk)}
+.edits .pg{font-family:var(--f-data);font-size:11px;color:var(--muted);grid-row:span 2;padding-top:2px}
+.edits .old{color:var(--muted);text-decoration:line-through;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px}
+.edits .new{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edits .tag{font-size:11px;color:var(--danger)}
+.empty{color:var(--muted);font-size:13px}
+.how{margin:0;padding-left:18px;color:var(--muted);font-size:13px;display:flex;flex-direction:column;gap:4px}
+.how b{color:var(--ink);font-weight:500}
+.meta{font-family:var(--f-data);font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer}
+
+.drop{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(35,70,176,.12);border:3px dashed var(--accent);font-size:20px;font-weight:600;color:var(--accent);pointer-events:none}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--panel);
+  padding:10px 16px;border-radius:10px;box-shadow:var(--shadow);max-width:min(560px,calc(100vw - 32px));font-size:13px}
+.toast.err{background:var(--danger);color:#fff}
+.notice{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:12px 14px;color:var(--muted);max-width:640px}
+@media (prefers-reduced-motion:no-preference){.btn,.edits li button{transition:background .12s,border-color .12s}}
+@media (max-width:560px){.brand span{display:none}.find input{width:11ch}}
+</style>
+</head>
+<body>
+<header class="bar" id="bar">
+  <div class="row">
+    <div class="brand"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M5 2h8l5 5v13H5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M13 2v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 15.5l6.5-6.5 1.8 1.8-6.5 6.5H8z" fill="var(--mark)" stroke="currentColor" stroke-width="1.2"/></svg><span>Правка PDF</span></div>
+    <div class="file"><b id="fname">—</b><span class="chip" id="fchip" hidden></span></div>
+    <div class="spacer"></div>
+    <label class="btn" for="fileIn">Открыть PDF</label>
+    <input type="file" id="fileIn" accept="application/pdf,.pdf" hidden>
+    <button class="btn primary" id="saveBtn" disabled>Сохранить PDF</button>
+  </div>
+  <div class="row">
+    <div class="seg" role="group" aria-label="Режим">
+      <button id="mEdit" aria-pressed="true">Править текст</button>
+      <button id="mAdd" aria-pressed="false">Добавить текст</button>
+    </div>
+    <div class="zoom">
+      <button class="btn" id="zOut" aria-label="Уменьшить">−</button>
+      <output id="zVal">100%</output>
+      <button class="btn" id="zIn" aria-label="Увеличить">+</button>
+      <button class="btn" id="zFit">По ширине</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="find">
+      <input id="fFind" placeholder="Найти" aria-label="Найти">
+      <input id="fRepl" placeholder="Заменить на" aria-label="Заменить на">
+      <button class="btn" id="fGo">Заменить все</button>
+    </div>
+  </div>
+  <div class="ctx" id="ctx" hidden>
+    <label for="cSize">Размер</label><input type="number" id="cSize" min="2" max="300" step="0.5"><label>пт</label>
+    <button class="btn tog" id="cBold" aria-pressed="false" title="Жирный">Ж</button>
+    <button class="btn tog" id="cItal" aria-pressed="false" title="Курсив" style="font-style:italic">К</button>
+    <div class="seg" role="group" aria-label="Гарнитура">
+      <button data-fam="serif" aria-pressed="false">С засечками</button>
+      <button data-fam="sans" aria-pressed="false">Без засечек</button>
+      <button data-fam="mono" aria-pressed="false">Моно</button>
+    </div>
+    <label for="cColor">Цвет</label><input type="color" id="cColor">
+    <span class="src" id="cSrc"></span>
+    <div class="spacer"></div>
+    <button class="btn" id="cRevert">Вернуть исходное</button>
+    <button class="btn" id="cDel" style="color:var(--danger)">Удалить строку</button>
+  </div>
+</header>
+
+<main class="main" id="main">
+  <section class="pages" id="pages" aria-label="Страницы документа"></section>
+  <aside class="rail">
+    <div class="card">
+      <h2>Правки <span id="eCount">0</span></h2>
+      <ul class="edits" id="edits"></ul>
+      <p class="empty" id="eEmpty">Пока ничего не изменено.</p>
+      <label class="check"><input type="checkbox" id="showMarks" checked> Подсвечивать правки</label>
+      <button class="btn" id="resetAll" disabled>Сбросить все правки</button>
+    </div>
+    <div class="card">
+      <h2>Как пользоваться</h2>
+      <ol class="how">
+        <li><b>Щёлкните по строке</b> и исправьте текст. Enter — готово, Esc — отмена.</li>
+        <li>Над страницей появится панель: размер в пунктах, жирный, курсив, цвет.</li>
+        <li>Режим <b>«Добавить текст»</b> — щёлкните в пустое место страницы.</li>
+        <li><b>Сохранить PDF</b> (или Ctrl+S) — получите исправленный файл.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h2>Документ</h2>
+      <div class="meta" id="meta">—</div>
+    </div>
+  </aside>
+</main>
+<div class="drop" id="drop" hidden>Отпустите PDF, чтобы открыть</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="lib/pdf.min.js"></script>
+<script src="lib/pdf-lib.min.js"></script>
+<script src="lib/fontkit.umd.min.js"></script>
+<script>
+/*CORE-START*/
+const FONT_FILES={
+  sans:{r:"LiberationSans-Regular",b:"LiberationSans-Bold",i:"LiberationSans-Italic",bi:"LiberationSans-BoldItalic"},
+  serif:{r:"LiberationSerif-Regular",b:"LiberationSerif-Bold",i:"LiberationSerif-Italic",bi:"LiberationSerif-BoldItalic"},
+  mono:{r:"LiberationMono-Regular",b:"LiberationMono-Bold",i:"LiberationMono-Italic",bi:"LiberationMono-BoldItalic"}
+};
+function fontKey(st){return FONT_FILES[st.family||"sans"][(st.bold?"b":"")+(st.italic?"i":"")||"r"];}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+function classifyFont(realName,cssFamily,fo){
+  const n=String(realName||"").replace(/^[A-Z]{6}\+/,"");
+  const fb=String((fo&&fo.fallbackName)||"");
+  const all=n+" "+fb;
+  const mono=/courier|mono|consol|menlo|fixed/i.test(all)||(!n&&cssFamily==="monospace");
+  const serifName=/times|serif|georgia|garamond|cambria|caladea|minion|palatino|baskerv|roman|antiqua|bodoni|didot|charter|book/i.test(all)&&!/sans/i.test(n);
+  const serif=!mono&&(serifName||(!n&&cssFamily==="serif"));
+  const bold=/bold|black|heavy|semibold|demi|,b(\b|$)/i.test(n)||!!(fo&&(fo.bold||fo.black));
+  const italic=/italic|oblique|,i(\b|$)/i.test(n)||!!(fo&&fo.italic);
+  return {family:mono?"mono":serif?"serif":"sans",bold,italic,name:n||cssFamily||""};
+}
+
+/* Merge pdf.js text items into editable lines (PDF user space). */
+function mergeLines(items,styles){
+  const lines=[];let cur=null;
+  const flush=()=>{if(cur&&cur.str.trim()!=="")lines.push(cur);cur=null;};
+  for(const it of items){
+    if(typeof it.str!=="string")continue;
+    if(it.str===""){if(it.hasEOL)flush();continue;}
+    const t=it.transform;const size=Math.hypot(t[2],t[3])||Math.hypot(t[0],t[1])||1;
+    const angle=Math.atan2(t[1],t[0]);const st=styles[it.fontName]||{};
+    if(cur){
+      const c=Math.cos(cur.angle),s=Math.sin(cur.angle);
+      const dx=t[4]-cur.x,dy=t[5]-cur.y;const along=dx*c+dy*s,perp=-dx*s+dy*c;const gap=along-cur.width;
+      const ok=!st.vertical&&it.fontName===cur.fontName&&Math.abs(angle-cur.angle)<0.01&&Math.abs(size-cur.size)<0.05*size&&
+        Math.abs(perp)<0.25*size&&gap>-0.3*size&&gap<0.9*size;
+      if(ok){
+        if(gap>0.18*size&&!cur.str.endsWith(" ")&&!it.str.startsWith(" "))cur.str+=" ";
+        cur.str+=it.str;if(it.str.trim()!=="")cur.width=Math.max(cur.width,along+it.width);
+        if(it.hasEOL)flush();continue;
+      }
+      flush();
+    }
+    if(it.str.trim()===""){continue;}
+    cur={str:it.str,x:t[4],y:t[5],angle,size,width:it.width,fontName:it.fontName,
+      asc:clamp(st.ascent||0.8,0.6,1.05),desc:clamp(st.descent==null?-0.2:st.descent,-0.4,-0.05),cssFamily:st.fontFamily||""};
+    if(it.hasEOL||st.vertical)flush();
+  }
+  flush();
+  return lines.map(l=>({...l,str:l.str.replace(/\s+$/,"")}));
+}
+
+/* Rectangle that hides the original line, in the line's own frame -> PDF coords. */
+function coverRect(e){
+  const z=e.coverSize||e.size,pad=Math.max(0.6,z*0.07);
+  const lx=-pad,ly=e.desc*z-pad*0.6;
+  const c=Math.cos(e.angle),s=Math.sin(e.angle);
+  return {x:e.x+lx*c-ly*s,y:e.y+lx*s+ly*c,width:e.width+2*pad,height:(e.asc-e.desc)*z+pad*1.2,deg:e.angle*180/Math.PI};
+}
+
+/* edits: [{page, x,y,angle,size,width,asc,desc, text, cover, bg:[r,g,b], color:[r,g,b], family,bold,italic}] (rgb 0..255) */
+async function buildPdf(bytes,edits,lib){
+  const {PDFLib,fontkit,loadFont}=lib;
+  const doc=await PDFLib.PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
+  doc.registerFontkit(fontkit);
+  const fonts={};
+  const getFont=async k=>fonts[k]||(fonts[k]=doc.embedFont(await loadFont(k),{subset:true}));
+  const pages=doc.getPages();
+  const rgb=a=>PDFLib.rgb(a[0]/255,a[1]/255,a[2]/255);
+  for(const e of edits){
+    const page=pages[e.page];if(!page)continue;
+    if(e.cover){const r=coverRect(e);
+      page.drawRectangle({x:r.x,y:r.y,width:r.width,height:r.height,rotate:PDFLib.degrees(r.deg),color:rgb(e.bg||[255,255,255]),borderWidth:0});}
+    const text=(e.text||"").replace(/[\r\n]+/g," ");
+    if(text.trim()){
+      const font=await getFont(fontKey(e));
+      page.drawText(text,{x:e.x,y:e.y,size:e.size,font,color:rgb(e.color||[0,0,0]),rotate:PDFLib.degrees(e.angle*180/Math.PI)});
+    }
+  }
+  return doc.save();
+}
+/*CORE-END*/
+</script>
+<script>
+(()=>{
+const $=s=>document.querySelector(s);
+const pdfjsLib=window.pdfjsLib;
+pdfjsLib.GlobalWorkerOptions.workerSrc=new URL("lib/pdf.worker.min.js",document.baseURI).href;
+const CSSFAM={sans:"'PE sans', Arial, 'Liberation Sans', Helvetica, sans-serif",serif:"'PE serif', 'Times New Roman', 'Liberation Serif', Times, serif",mono:"'PE mono', 'Courier New', 'Liberation Mono', monospace"};
+const S={doc:null,bytes:null,name:"",sample:false,pages:[],zoom:1,fit:true,mode:"edit",sel:null,uid:0,downloads:undefined};
+
+/* ---------- fonts ---------- */
+const fontBytes={};
+const loadFont=k=>fontBytes[k]||(fontBytes[k]=fetch("fonts/"+k+".ttf").then(r=>{if(!r.ok)throw new Error("font");return r.arrayBuffer();}));
+const faceDone={};
+function ensureFace(st){
+  const k=fontKey(st);if(faceDone[k])return;faceDone[k]=1;
+  loadFont(k).then(buf=>{const f=new FontFace("PE "+st.family,buf,{weight:st.bold?"700":"400",style:st.italic?"italic":"normal"});
+    return f.load().then(()=>document.fonts.add(f));}).catch(()=>{});
+}
+
+/* ---------- helpers ---------- */
+let toastT;
+function toast(msg,err){const t=$("#toast");t.textContent=msg;t.className="toast"+(err?" err":"");t.hidden=false;clearTimeout(t._t);t._t=setTimeout(()=>t.hidden=true,err?6000:3200);}
+const hex=a=>"#"+a.map(v=>Math.round(v).toString(16).padStart(2,"0")).join("");
+const unhex=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
+const css=a=>`rgb(${a.join(",")})`;
+function mm(pt){return Math.round(pt/72*25.4);}
+function paperName(w,h){const a=[mm(w),mm(h)].sort((x,y)=>x-y);const P={A3:[297,420],A4:[210,297],A5:[148,210],Letter:[216,279],Legal:[216,356]};
+  for(const k in P)if(Math.abs(P[k][0]-a[0])<=2&&Math.abs(P[k][1]-a[1])<=2)return k;return "";}
+
+/* ---------- open ---------- */
+async function openBytes(bytes,name,sample){
+  let doc;
+  try{doc=await pdfjsLib.getDocument({data:bytes.slice(),isEvalSupported:false}).promise;}
+  catch(e){toast(e&&e.name==="PasswordException"?"Файл защищён паролем — снимите пароль и откройте снова.":"Не получилось прочитать файл. Проверьте, что это PDF.",true);return;}
+  if(S.doc)S.doc.destroy();
+  Object.assign(S,{doc,bytes,name,sample,pages:[],sel:null});
+  $("#fname").textContent=name;const ch=$("#fchip");ch.hidden=false;ch.className="chip"+(sample?" sample":"");ch.textContent=sample?"Пример":doc.numPages+" стр.";
+  const box=$("#pages");box.innerHTML="";
+  let textLines=0;
+  for(let i=1;i<=doc.numPages;i++){
+    const proxy=await doc.getPage(i);const base=proxy.getViewport({scale:1});
+    const tc=await proxy.getTextContent();
+    const el=document.createElement("div");el.className="page";el.dataset.i=i-1;
+    el.innerHTML=`<span class="num">${i} / ${doc.numPages}</span><canvas></canvas><div class="layer"></div>`;
+    box.appendChild(el);
+    const p={i:i-1,proxy,base,styles:tc.styles,el,canvas:el.querySelector("canvas"),layer:el.querySelector(".layer"),lines:[],rendered:0,task:null,sampled:false,fontsReady:false};
+    p.lines=mergeLines(tc.items,tc.styles).map(l=>mkLine(p,l));textLines+=p.lines.length;
+    p.layer.addEventListener("pointerdown",ev=>onLayerDown(p,ev));
+    S.pages.push(p);io.observe(el);
+  }
+  if(!textLines){const n=document.createElement("p");n.className="notice";
+    n.textContent="В этом файле нет текстового слоя (похоже на скан или текст в кривых). Существующий текст здесь не исправить, но можно добавить новый — режим «Добавить текст».";box.prepend(n);}
+  const b=S.pages[0].base;const pn=paperName(b.width,b.height);
+  $("#meta").innerHTML=`<span>${doc.numPages} стр. · ${textLines} строк текста</span><span>${pn?pn+" · ":""}${mm(b.width)} × ${mm(b.height)} мм</span>`;
+  $("#saveBtn").disabled=false;
+  fitWidth();refreshEdits();
+}
+function mkLine(p,l){
+  const ln={...l,id:++S.uid,p,text:l.str,auto:null,st:null,color:null,bg:null,deleted:false,added:false,el:null};
+  const el=document.createElement("div");el.className="ln";el.textContent=l.str;el.spellcheck=false;
+  el.setAttribute("role","textbox");el.setAttribute("aria-label","Строка: "+l.str);
+  ln.el=el;el._ln=ln;bindLine(ln);p.layer.appendChild(el);return ln;
+}
+
+/* ---------- geometry ---------- */
+function place(ln){
+  const p=ln.p,vt=p.vp.transform,sc=p.vp.scale;
+  const sx=vt[0]*ln.x+vt[2]*ln.y+vt[4],sy=vt[1]*ln.x+vt[3]*ln.y+vt[5];
+  const c=Math.cos(ln.angle),s=Math.sin(ln.angle);
+  const ang=Math.atan2(vt[1]*c+vt[3]*s,vt[0]*c+vt[2]*s);
+  const st=style(ln),fh=st.size*sc,el=ln.el,asc=ln.asc,desc=ln.desc;
+  el.style.left=sx+"px";el.style.top=sy+"px";
+  el.style.fontSize=fh+"px";el.style.lineHeight=((asc-desc)*fh)+"px";el.style.height=((asc-desc)*fh)+"px";
+  el.style.minWidth=ln.added?"1em":(ln.width*sc)+"px";
+  el.style.transform=`rotate(${ang}rad) translateY(${-asc*fh}px)`;
+  el.style.fontFamily=CSSFAM[st.family];el.style.fontWeight=st.bold?"700":"400";el.style.fontStyle=st.italic?"italic":"normal";
+  el.style.setProperty("--c",css(ln.color||(ln.auto&&ln.auto.color)||[0,0,0]));
+  el.style.setProperty("--bg",css(ln.bg||(ln.auto&&ln.auto.bg)||[255,255,255]));
+  if(ln.text!==ln.str||ln.st||ln.added)ensureFace(st);
+}
+function style(ln){
+  const base=ln.auto&&ln.auto.font?ln.auto.font:classifyFont("",ln.cssFamily,null);
+  return {family:base.family,bold:base.bold,italic:base.italic,size:ln.size,...(ln.st||{})};
+}
+function layout(p){
+  p.vp=p.proxy.getViewport({scale:S.zoom});
+  p.el.style.width=p.vp.width+"px";p.el.style.height=p.vp.height+"px";
+  for(const ln of p.lines)place(ln);
+}
+
+/* ---------- render ---------- */
+const visible=new Set();
+const io=new IntersectionObserver(es=>{for(const e of es){const p=S.pages[+e.target.dataset.i];if(!p)continue;
+  if(e.isIntersecting){visible.add(p);render(p);}else visible.delete(p);}},{rootMargin:"800px 0px"});
+async function render(p){
+  if(p.rendered===S.zoom&&!p.task)return;
+  if(p.task){p.task.cancel();p.task=null;}
+  const z=S.zoom,vp=p.proxy.getViewport({scale:z});
+  let dpr=Math.min(window.devicePixelRatio||1,2.5);
+  while(vp.width*vp.height*dpr*dpr>16e6&&dpr>0.6)dpr-=0.25;
+  const cv=document.createElement("canvas");cv.width=Math.floor(vp.width*dpr);cv.height=Math.floor(vp.height*dpr);
+  const ctx=cv.getContext("2d",{willReadFrequently:true});
+  const task=p.proxy.render({canvasContext:ctx,viewport:vp,transform:[dpr,0,0,dpr,0,0]});p.task=task;
+  try{await task.promise;}catch(e){if(p.task===task)p.task=null;return;}
+  if(p.task!==task)return;p.task=null;
+  cv.style.cssText="";p.el.replaceChild(cv,p.canvas);p.canvas=cv;p.rendered=z;
+  if(!p.fontsReady){resolveFonts(p);p.fontsReady=true;}
+  if(!p.sampled){sample(p,ctx,vp,dpr);p.sampled=true;}
+  for(const ln of p.lines)place(ln);
+}
+function resolveFonts(p){
+  for(const ln of p.lines){if(ln.added)continue;let fo=null;
+    try{fo=p.proxy.commonObjs.has(ln.fontName)?p.proxy.commonObjs.get(ln.fontName):null;}catch(e){}
+    ln.auto=ln.auto||{};ln.auto.font=classifyFont(fo&&fo.name,ln.cssFamily,fo);}
+}
+function sample(p,ctx,vp,dpr){
+  const W=ctx.canvas.width,H=ctx.canvas.height;let img;
+  try{img=ctx.getImageData(0,0,W,H).data;}catch(e){return;}
+  const vt=vp.transform;
+  for(const ln of p.lines){if(ln.added)continue;
+    const r=coverRect(ln);const c=Math.cos(ln.angle),s=Math.sin(ln.angle);
+    const pts=[[0,0],[r.width,0],[0,r.height],[r.width,r.height]].map(([a,b])=>{const x=r.x+a*c-b*s,y=r.y+a*s+b*c;
+      return [(vt[0]*x+vt[2]*y+vt[4])*dpr,(vt[1]*x+vt[3]*y+vt[5])*dpr];});
+    let x0=Math.floor(Math.min(...pts.map(q=>q[0]))),x1=Math.ceil(Math.max(...pts.map(q=>q[0])));
+    let y0=Math.floor(Math.min(...pts.map(q=>q[1]))),y1=Math.ceil(Math.max(...pts.map(q=>q[1])));
+    x0=clamp(x0,0,W-1);x1=clamp(x1,0,W-1);y0=clamp(y0,0,H-1);y1=clamp(y1,0,H-1);
+    const px=(x,y)=>{const o=(y*W+x)*4;return [img[o],img[o+1],img[o+2],img[o+3]];};
+    const counts=new Map();
+    const edge=(x,y)=>{const q=px(x,y);const k=q[3]<128?"255,255,255":((q[0]>>3)<<3)+","+((q[1]>>3)<<3)+","+((q[2]>>3)<<3);counts.set(k,(counts.get(k)||0)+1);};
+    const step=Math.max(1,Math.floor((x1-x0)/120));
+    for(let x=x0;x<=x1;x+=step){edge(x,y0);edge(x,y1);}
+    for(let y=y0;y<=y1;y+=Math.max(1,Math.floor((y1-y0)/20))){edge(x0,y);edge(x1,y);}
+    let bg=[255,255,255],best=0;for(const [k,v] of counts)if(v>best){best=v;bg=k.split(",").map(Number);}
+    let col=[0,0,0],dmax=0;const sy=Math.max(1,Math.floor((y1-y0)/40)),sx=Math.max(1,Math.floor((x1-x0)/400));
+    for(let y=y0;y<=y1;y+=sy)for(let x=x0;x<=x1;x+=sx){const q=px(x,y);if(q[3]<128)continue;
+      const d=Math.abs(q[0]-bg[0])+Math.abs(q[1]-bg[1])+Math.abs(q[2]-bg[2]);if(d>dmax){dmax=d;col=[q[0],q[1],q[2]];}}
+    if(dmax<60)col=[0,0,0];
+    ln.auto=ln.auto||{};ln.auto.bg=bg;ln.auto.color=col;}
+}
+
+/* ---------- zoom ---------- */
+function setZoom(z,fit){
+  S.zoom=clamp(Math.round(z*100)/100,0.3,4);S.fit=!!fit;$("#zVal").textContent=Math.round(S.zoom*100)+"%";
+  for(const p of S.pages)layout(p);
+  for(const p of visible)render(p);
+}
+function fitWidth(){
+  if(!S.pages.length)return;const w=$("#pages").clientWidth-8;
+  const mw=Math.max(...S.pages.map(p=>p.base.width));setZoom(clamp(w/mw,0.3,1.6),true);
+}
+$("#zIn").onclick=()=>setZoom(S.zoom*1.15);$("#zOut").onclick=()=>setZoom(S.zoom/1.15);$("#zFit").onclick=fitWidth;
+let rz;window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(()=>{if(S.fit)fitWidth();},200);});
+
+/* ---------- editing ---------- */
+function bindLine(ln){
+  const el=ln.el;
+  el.addEventListener("pointerdown",ev=>{ev.stopPropagation();startEdit(ln);});
+  el.addEventListener("keydown",ev=>{
+    if(ev.key==="Enter"){ev.preventDefault();el.blur();}
+    else if(ev.key==="Escape"){ev.preventDefault();el.textContent=ln._before;el.blur();}
+  });
+  el.addEventListener("input",()=>{if(el.textContent.includes("\n"))el.textContent=el.textContent.replace(/\n/g," ");});
+  el.addEventListener("paste",ev=>{ev.preventDefault();const t=(ev.clipboardData.getData("text/plain")||"").replace(/[\r\n]+/g," ");document.execCommand("insertText",false,t);});
+  el.addEventListener("blur",()=>commit(ln));
+}
+function startEdit(ln){
+  if(ln.deleted){ln.deleted=false;ln.el.textContent=ln.text;}
+  if(ln.el.isContentEditable)return;
+  ln._before=ln.el.textContent;
+  try{ln.el.contentEditable="plaintext-only";}catch(e){}
+  if(ln.el.contentEditable!=="plaintext-only")ln.el.contentEditable="true";
+  ln.el.classList.add("on");ensureFace(style(ln));select(ln);
+  requestAnimationFrame(()=>{if(document.activeElement!==ln.el)ln.el.focus();});
+}
+function commit(ln){
+  ln.el.contentEditable="false";ln.el.classList.remove("on");
+  ln.text=ln.el.textContent.replace(/\s+$/,"");
+  if(ln.added&&!ln.text.trim()){removeAdded(ln);return;}
+  mark(ln);refreshEdits();
+}
+function isChanged(ln){return ln.added||ln.deleted||ln.text!==ln.str||!!ln.st||!!ln.color;}
+function mark(ln){
+  const el=ln.el;el.classList.toggle("changed",!ln.added&&!ln.deleted&&isChanged(ln));
+  el.classList.toggle("deleted",ln.deleted);el.classList.toggle("added",ln.added);
+  if(!ln.deleted&&el.textContent!==ln.text&&!el.isContentEditable)el.textContent=ln.text;
+  place(ln);
+}
+function removeAdded(ln){const p=ln.p;p.lines=p.lines.filter(x=>x!==ln);ln.el.remove();if(S.sel===ln)select(null);refreshEdits();}
+
+function onLayerDown(p,ev){
+  if(S.mode!=="add")return;
+  if(ev.target!==p.layer)return;
+  ev.preventDefault();
+  const r=p.layer.getBoundingClientRect();const sx=ev.clientX-r.left,sy=ev.clientY-r.top;
+  const a=p.vp.convertToPdfPoint(sx,sy),b=p.vp.convertToPdfPoint(sx+10,sy);
+  const angle=Math.atan2(b[1]-a[1],b[0]-a[0]);
+  const prev=S.sel&&S.sel.added?S.sel:null;
+  const size=prev?style(prev).size:12;
+  const st=prev?{...style(prev)}:{family:"sans",bold:false,italic:false,size};
+  const c=Math.cos(angle),s=Math.sin(angle),off=-size*0.35;
+  const ln=mkLine(p,{str:"",x:a[0]-off*s,y:a[1]+off*c,angle,size,width:0,fontName:"",asc:0.9,desc:-0.22,cssFamily:""});
+  ln.added=true;ln.text="";ln.st=st;ln.color=prev&&prev.color?prev.color:[17,17,17];
+  p.lines.push(ln);mark(ln);ln.el.textContent="";startEdit(ln);
+}
+
+/* ---------- context panel ---------- */
+function select(ln){
+  S.sel=ln;const c=$("#ctx");c.hidden=!ln;if(!ln)return;
+  const st=style(ln);
+  $("#cSize").value=+st.size.toFixed(1);
+  $("#cBold").setAttribute("aria-pressed",st.bold);$("#cItal").setAttribute("aria-pressed",st.italic);
+  c.querySelectorAll("[data-fam]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.fam===st.family));
+  $("#cColor").value=hex(ln.color||(ln.auto&&ln.auto.color)||[0,0,0]);
+  const fn=ln.auto&&ln.auto.font&&ln.auto.font.name;
+  $("#cSrc").textContent=ln.added?"Новая надпись · стр. "+(ln.p.i+1):"Стр. "+(ln.p.i+1)+(fn?" · исходный шрифт "+fn:"");
+  $("#cRevert").hidden=!!ln.added;$("#cDel").textContent=ln.added?"Удалить надпись":"Удалить строку";
+}
+function setSt(patch){const ln=S.sel;if(!ln)return;ln.st={...(ln.st||{}),...patch};
+  const base=ln.auto&&ln.auto.font?ln.auto.font:classifyFont("",ln.cssFamily,null);
+  if(!ln.added){const same=["family","bold","italic"].every(k=>ln.st[k]===undefined||ln.st[k]===base[k])&&(ln.st.size===undefined||Math.abs(ln.st.size-ln.size)<0.01);if(same)ln.st=null;}
+  mark(ln);select(ln);refreshEdits();}
+$("#ctx").addEventListener("pointerdown",ev=>{if(ev.target.closest("button"))ev.preventDefault();});
+$("#cSize").addEventListener("input",e=>{const v=parseFloat(e.target.value);if(v>=2&&v<=300)setSt({size:v});});
+$("#cBold").onclick=()=>setSt({bold:!style(S.sel).bold});
+$("#cItal").onclick=()=>setSt({italic:!style(S.sel).italic});
+$("#ctx").querySelectorAll("[data-fam]").forEach(b=>b.onclick=()=>setSt({family:b.dataset.fam}));
+$("#cColor").addEventListener("input",e=>{const ln=S.sel;if(!ln)return;ln.color=unhex(e.target.value);mark(ln);refreshEdits();});
+$("#cRevert").onclick=()=>{const ln=S.sel;if(!ln)return;ln.text=ln.str;ln.st=null;ln.color=null;ln.deleted=false;ln.el.textContent=ln.str;ln.el.blur();mark(ln);select(ln);refreshEdits();};
+$("#cDel").onclick=()=>{const ln=S.sel;if(!ln)return;if(ln.added){ln.el.blur();removeAdded(ln);return;}
+  ln.deleted=true;ln.el.textContent=ln.str;ln.el.contentEditable="false";ln.el.classList.remove("on");mark(ln);select(null);refreshEdits();};
+document.addEventListener("pointerdown",ev=>{if(!ev.target.closest(".ln")&&!ev.target.closest("#ctx")&&!ev.target.closest(".layer"))select(null);});
+
+/* ---------- mode ---------- */
+function setMode(m){S.mode=m;$("#mEdit").setAttribute("aria-pressed",m==="edit");$("#mAdd").setAttribute("aria-pressed",m==="add");
+  document.body.classList.toggle("mode-add",m==="add");}
+$("#mEdit").onclick=()=>setMode("edit");$("#mAdd").onclick=()=>setMode("add");
+
+/* ---------- edits list ---------- */
+function allEdits(){const out=[];for(const p of S.pages)for(const ln of p.lines)if(isChanged(ln))out.push(ln);return out;}
+function refreshEdits(){
+  const list=allEdits(),ul=$("#edits");ul.innerHTML="";
+  $("#eCount").textContent=list.length;$("#eEmpty").hidden=list.length>0;$("#resetAll").disabled=!list.length;
+  for(const ln of list){const li=document.createElement("li");const b=document.createElement("button");
+    const pg=document.createElement("span");pg.className="pg";pg.textContent="с."+(ln.p.i+1);b.appendChild(pg);
+    if(ln.added){const n=document.createElement("span");n.className="new";n.textContent=ln.text;const t=document.createElement("span");t.className="tag";t.style.color="var(--ok)";t.textContent="новый текст";b.append(n,t);}
+    else{const o=document.createElement("span");o.className="old";o.textContent=ln.str;b.appendChild(o);
+      const n=document.createElement("span");
+      if(ln.deleted){n.className="tag";n.textContent="строка удалена";}else{n.className="new";n.textContent=ln.text===ln.str?"(изменено оформление)":ln.text;}
+      b.appendChild(n);}
+    b.onclick=()=>{ln.el.scrollIntoView({block:"center",behavior:"smooth"});startEdit(ln);};
+    li.appendChild(b);ul.appendChild(li);}
+}
+$("#showMarks").onchange=e=>document.body.classList.toggle("hide-marks",!e.target.checked);
+$("#resetAll").onclick=()=>{const b=$("#resetAll");
+  if(b.dataset.confirm!=="1"){b.dataset.confirm="1";b.textContent="Точно сбросить? Нажмите ещё раз";setTimeout(()=>{b.dataset.confirm="";b.textContent="Сбросить все правки";},3500);return;}
+  b.dataset.confirm="";b.textContent="Сбросить все правки";
+  for(const p of S.pages){for(const ln of [...p.lines]){if(ln.added){ln.el.remove();continue;}
+    ln.text=ln.str;ln.st=null;ln.color=null;ln.deleted=false;ln.el.textContent=ln.str;mark(ln);}
+    p.lines=p.lines.filter(l=>!l.added);}
+  select(null);refreshEdits();toast("Все правки сброшены");};
+
+/* ---------- find / replace ---------- */
+$("#fGo").onclick=()=>{
+  const f=$("#fFind").value,r=$("#fRepl").value;if(!f){toast("Введите, что найти");return;}
+  let n=0,lines=0;
+  for(const p of S.pages)for(const ln of p.lines){if(ln.deleted)continue;const parts=ln.text.split(f);
+    if(parts.length>1){n+=parts.length-1;lines++;ln.text=parts.join(r);ln.el.textContent=ln.text;mark(ln);}}
+  refreshEdits();
+  toast(n?`Заменено: ${n} (${lines} строк)`:"Ничего не найдено. Поиск идёт внутри одной строки и учитывает регистр.",!n);
+};
+
+/* ---------- save ---------- */
+async function ensureSampled(p){for(let k=0;k<3&&!(p.sampled&&p.fontsReady);k++){p.rendered=0;await render(p);}}
+async function save(){
+  if(!S.doc)return;
+  if(document.activeElement&&document.activeElement.classList.contains("ln"))document.activeElement.blur();
+  const list=allEdits();
+  const btn=$("#saveBtn");btn.disabled=true;const old=btn.textContent;btn.textContent="Собираю…";
+  try{
+    for(const p of new Set(list.map(l=>l.p)))await ensureSampled(p);
+    const edits=list.map(ln=>{const st=style(ln);return {page:ln.p.i,x:ln.x,y:ln.y,angle:ln.angle,size:st.size,coverSize:ln.size,width:ln.width,asc:ln.asc,desc:ln.desc,
+      text:ln.deleted?"":ln.text,cover:!ln.added,bg:ln.bg||(ln.auto&&ln.auto.bg)||[255,255,255],color:ln.color||(ln.auto&&ln.auto.color)||[0,0,0],
+      family:st.family,bold:st.bold,italic:st.italic};});
+    const out=await buildPdf(S.bytes,edits,{PDFLib:window.PDFLib,fontkit:window.fontkit,loadFont});
+    const fname=S.name.replace(/\.pdf$/i,"")+(list.length?" (исправлено)":"")+".pdf";
+    const blob=new Blob([out],{type:"application/pdf"});
+    const dl=await getDownloads();
+    if(dl){
+      try{await dl.save({filename:fname,data:blob});toast("Файл сохранён: "+fname);}
+      catch(e){const c=e&&e.code;if(c==="declined")toast("Сохранение отменено");else if(c==="rate_limited")toast("Окно сохранения уже открыто",true);
+        else toast("Не удалось сохранить файл здесь. Откройте эту страницу в claude.ai и попробуйте снова.",true);}
+    }else{
+      const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();
+      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},4000);
+      toast("Файл собран. Если скачивание не началось, откройте страницу в claude.ai.");
+    }
+  }catch(e){console.error(e);toast("Не удалось собрать PDF: "+(e&&e.message||e),true);}
+  finally{btn.disabled=false;btn.textContent=old;}
+}
+$("#saveBtn").onclick=save;
+document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();save();}});
+async function getDownloads(){
+  if(S.downloads!==undefined)return S.downloads;
+  try{S.downloads=window.claude&&window.claude.use?await window.claude.use("downloads"):null;}catch(e){S.downloads=null;}
+  return S.downloads;
+}
+
+/* ---------- file input / drop ---------- */
+async function openFile(f){
+  if(!f)return;if(!/pdf$/i.test(f.type)&&!/\.pdf$/i.test(f.name)){toast("Это не PDF-файл",true);return;}
+  const buf=new Uint8Array(await f.arrayBuffer());await openBytes(buf,f.name,false);
+}
+$("#fileIn").onchange=e=>{openFile(e.target.files[0]);e.target.value="";};
+let dragN=0;
+window.addEventListener("dragenter",e=>{if([...(e.dataTransfer.types||[])].includes("Files")){dragN++;$("#drop").hidden=false;}});
+window.addEventListener("dragleave",()=>{dragN=Math.max(0,dragN-1);if(!dragN)$("#drop").hidden=true;});
+window.addEventListener("dragover",e=>e.preventDefault());
+window.addEventListener("drop",e=>{e.preventDefault();dragN=0;$("#drop").hidden=true;openFile(e.dataTransfer.files[0]);});
+
+/* ---------- start with the sample ---------- */
+getDownloads();
+fetch("sample.pdf").then(r=>r.arrayBuffer()).then(b=>openBytes(new Uint8Array(b),"Коммерческое предложение — образец.pdf",true))
+  .catch(()=>{$("#pages").innerHTML='<p class="notice">Откройте PDF кнопкой «Открыть PDF» или перетащите файл в окно.</p>';});
+})();
+</script>
+
+</body>
+</html>
