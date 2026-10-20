@@ -597,7 +597,7 @@ window.addEventListener("drop",e=>{e.preventDefault();dragN=0;$("#drop").hidden=
 
 /* ---------- start with the sample ---------- */
 getDownloads();
-fetch("sample.pdf").then(r=>r.arrayBuffer()).then(b=>openBytes(new Uint8Array(b),"Коммерческое предложение — образец.pdf",true))
+fetch("sample.pdf").then(r=>r.arrayBuffer()).then(b=>openBytes(new Uint8Array(b),"Параметрическое проектирование — образец.pdf",true))
   .catch(()=>{$("#pages").innerHTML='<p class="notice">Откройте PDF кнопкой «Открыть PDF» или перетащите файл в окно.</p>';});
 })();
 </script>
