@@ -112,7 +112,7 @@ button,input{font:inherit;color:inherit}
 .ictx-info{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .ictx-info b{color:var(--ink);font-weight:600}
 
-.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--barh,110px) + 14px);max-height:calc(100vh - var(--barh,110px) - 28px);overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:14px;min-width:0}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--barh,110px) + 14px);max-height:calc(100vh - var(--barh,110px) - 88px);overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:14px;min-width:0}
 @media (max-width:900px){.rail{position:static;max-height:none;overflow:visible}}
 .card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .card h2{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0;display:flex;justify-content:space-between;align-items:center}
@@ -898,7 +898,7 @@ async function rebuildPreview(p){
   }catch(e){console.error(e);if(tok===p.altTok)toast("Не получилось показать замену на странице. В сохранённом файле она всё равно будет.",true);}
 }
 function refreshImgs(page){for(const p of page?[page]:S.pages)for(const im of p.images)placeImg(im);}
-const imgLocked=()=>{if(S.protected){toast("Файл защищён владельцем от изменений: картинки в нём заменить нельзя. Скачать — можно.",true);return true;}return false;};
+const imgLocked=()=>{if(S.protected){toast("Файл защищён владельцем от изменений: картинки в нём заменить нельзя.",true);return true;}return false;};
 const FILTER_NAME={DCTDecode:"JPEG",JPXDecode:"JPEG 2000",JBIG2Decode:"JBIG2",CCITTFaxDecode:"факс (ч/б)",FlateDecode:"PNG-подобная",RunLengthDecode:"RLE",LZWDecode:"LZW"};
 function selectImg(im){
   if(S.isel)S.isel.el.classList.remove("on");
@@ -913,6 +913,7 @@ function selectImg(im){
   $("#iInfo").append(b,` · ${im.w} × ${im.h} px${f?" · "+(FILTER_NAME[f]||f):""}${im.mask?" · маска":""} · стр. ${im.p.i+1}`+(e?(e.mode==="delete"?" · удалена":" · заменена"):""));
   $("#iFit").hidden=!e||e.mode==="delete";$("#iRevert").hidden=!e;
   if(e&&e.mode!=="delete")$("#iFit").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.fit===e.mode));
+  keepAboveSheet(im.el);
 }
 function setImgEdit(im,patch){
   const k=imgKey(im),old=S.img.get(k);
@@ -996,7 +997,20 @@ async function render(p){
   cv.style.cssText="";p.el.replaceChild(cv,p.canvas);p.canvas=cv;p.rendered=z;
   if(!p.fontsReady){resolveFonts(p);p.fontsReady=true;}
   if(!p.sampled){sample(p,ctx,vp,dpr);p.sampled=true;if(p.altPage){p.rendered=0;render(p);}}
-  for(const ln of p.lines)place(ln);
+  if(p.vp)for(const ln of p.lines)place(ln);
+}
+/* Phones: the text/picture panel is a bottom sheet — scroll the edited thing above it (and above the keyboard). */
+function keepAboveSheet(el){
+  if(!window.matchMedia("(max-width:560px)").matches||!el)return;
+  const go=()=>{
+    const sheet=[$("#ctx"),$("#ictx")].find(x=>!x.hidden);if(!sheet)return;
+    const vv=window.visualViewport,visH=vv?vv.height+vv.offsetTop:window.innerHeight;
+    const limit=Math.min(sheet.getBoundingClientRect().top,visH)-12;
+    const r=el.getBoundingClientRect(),bar=$("#bar").getBoundingClientRect().bottom+8;
+    if(r.bottom>limit){const want=r.bottom-limit;const room=r.top-bar;window.scrollBy({top:Math.max(0,Math.min(want,room)),behavior:"smooth"});}
+  };
+  requestAnimationFrame(()=>requestAnimationFrame(go));
+  setTimeout(go,350);                                     /* after the on-screen keyboard opens */
 }
 function resolveFonts(p){
   for(const ln of p.lines){if(ln.added)continue;let fo=null;
@@ -1060,7 +1074,8 @@ function startEdit(ln){
   try{ln.el.contentEditable="plaintext-only";}catch(e){}
   if(ln.el.contentEditable!=="plaintext-only")ln.el.contentEditable="true";
   ln.el.classList.add("on");ensureFace(style(ln));select(ln);
-  requestAnimationFrame(()=>{if(document.activeElement!==ln.el)ln.el.focus();});
+  requestAnimationFrame(()=>{if(document.activeElement!==ln.el)ln.el.focus({preventScroll:true});});
+  keepAboveSheet(ln.el);
 }
 function commit(ln){
   ln.el.contentEditable="false";ln.el.classList.remove("on");
@@ -1180,7 +1195,7 @@ async function checkProtected(doc){
     if(!d||!d.isEncrypted||S.doc!==doc)return;
     S.protected=true;
     const m=document.createElement("span");m.style.color="var(--danger)";m.textContent="Защищён владельцем от изменений";$("#meta").appendChild(m);
-    toast("Файл защищён владельцем от изменений: править его и сохранять часть страниц нельзя. Снимите защиту и откройте файл снова.",true);
+    toast("Файл защищён владельцем от изменений: править в нём текст и картинки и сохранять часть страниц нельзя. Снимите защиту и откройте файл снова.",true);
   }catch(e){}
 }
 
