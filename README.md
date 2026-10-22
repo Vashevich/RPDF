@@ -44,9 +44,12 @@ python3 -m http.server 8000
 
 В минифицированных файлах из `lib/` управляющие байты и символ U+FFFD заменены на эквивалентные escape-последовательности `\uXXXX`. На работу кода это не влияет.
 
-## Лицензии сторонних компонентов
+## Лицензия
+
+Код RPDF распространяется по лицензии MIT — см. файл `LICENSE`. Сторонние компоненты в `lib/` и `fonts/` остаются под своими лицензиями:
+
 
 - pdf.js — Apache License 2.0, Mozilla Foundation
 - pdf-lib — MIT, Andrew Dillon
 - @pdf-lib/fontkit — MIT
-- Шрифты Liberation — SIL Open Font License 1.1, Red Hat
+- Шрифты Liberation — SIL Open Font License 1.1, Red Hat (текст — `fonts/LICENSE-OFL.txt`)
