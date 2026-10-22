@@ -9,7 +9,7 @@ body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-seri
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
-<title>Правка PDF</title>
+<title>RPDF</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -73,11 +73,23 @@ button,input{font:inherit;color:inherit}
 .main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 60px}
 @media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
-.pages{display:flex;flex-direction:column;align-items:center;gap:22px;min-width:0;overflow-x:auto;padding-bottom:4px}
+.pages{display:flex;flex-direction:column;align-items:center;gap:34px;min-width:0;overflow-x:auto;padding-block:28px 4px}
 .page{position:relative;background:#fff;box-shadow:var(--shadow);flex:none}
 .page canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .page .layer{position:absolute;inset:0}
-.page .num{position:absolute;left:0;top:-18px;font-family:var(--f-data);font-size:11px;color:var(--muted);white-space:nowrap}
+.page .num{position:absolute;left:0;top:-20px;font-family:var(--f-data);font-size:11px;color:var(--muted);white-space:nowrap}
+.page .pick{position:absolute;right:0;top:-24px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap;user-select:none}
+.page .pick input{margin:0;width:15px;height:15px;accent-color:var(--accent)}
+.page.off canvas,.page.off .layer{opacity:.28}
+.page.off .pick{color:var(--danger)}
+.page.off::after{content:"не войдёт в файл";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--f-data);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--danger);background:var(--panel);border:1px solid var(--danger);border-radius:999px;padding:4px 12px;pointer-events:none;white-space:nowrap}
+.chip.sel{border-color:var(--accent);color:var(--accent)}
+.range{height:34px;border:1px solid var(--rule);border-radius:8px;padding:0 10px;background:var(--desk);font-family:var(--f-data);font-size:13px;width:100%;min-width:0;box-sizing:border-box}
+.range.bad{border-color:var(--danger)}
+.sub{font-size:12px;color:var(--muted)}
+.perr{margin:0;font-size:12px;color:var(--danger)}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px}
 .mode-add .page .layer{cursor:crosshair}
 
 .ln{position:absolute;white-space:pre;color:transparent;border-radius:1px;cursor:text;outline:none;padding:0;margin:0;
@@ -121,11 +133,12 @@ button,input{font:inherit;color:inherit}
 <body>
 <header class="bar" id="bar">
   <div class="row">
-    <div class="brand"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M5 2h8l5 5v13H5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M13 2v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 15.5l6.5-6.5 1.8 1.8-6.5 6.5H8z" fill="var(--mark)" stroke="currentColor" stroke-width="1.2"/></svg><span>Правка PDF</span></div>
+    <div class="brand"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M5 2h8l5 5v13H5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M13 2v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 15.5l6.5-6.5 1.8 1.8-6.5 6.5H8z" fill="var(--mark)" stroke="currentColor" stroke-width="1.2"/></svg><span>RPDF</span></div>
     <div class="file"><b id="fname">—</b><span class="chip" id="fchip" hidden></span></div>
     <div class="spacer"></div>
     <label class="btn" for="fileIn">Открыть PDF</label>
     <input type="file" id="fileIn" accept="application/pdf,.pdf" hidden>
+    <span class="chip sel" id="saveChip" hidden></span>
     <button class="btn primary" id="saveBtn" disabled>Сохранить PDF</button>
   </div>
   <div class="row">
@@ -173,13 +186,21 @@ button,input{font:inherit;color:inherit}
       <label class="check"><input type="checkbox" id="showMarks" checked> Подсвечивать правки</label>
       <button class="btn" id="resetAll" disabled>Сбросить все правки</button>
     </div>
+    <div class="card" id="pickCard">
+      <h2>Страницы в файле <span id="pCount">—</span></h2>
+      <label class="sub" for="pRange">Номера и диапазоны через запятую. Пусто — все страницы.</label>
+      <input id="pRange" class="range" placeholder="например 1-3, 5, 8-" autocomplete="off" spellcheck="false">
+      <p class="perr" id="pErr" hidden></p>
+      <div class="btnrow"><button class="btn" id="pAll">Все</button><button class="btn" id="pInv">Обратить выбор</button></div>
+    </div>
     <div class="card">
       <h2>Как пользоваться</h2>
       <ol class="how">
         <li><b>Щёлкните по строке</b> и исправьте текст. Enter — готово, Esc — отмена.</li>
         <li>Над страницей появится панель: размер в пунктах, жирный, курсив, цвет.</li>
         <li>Режим <b>«Добавить текст»</b> — щёлкните в пустое место страницы.</li>
-        <li><b>Сохранить PDF</b> (или Ctrl+S) — получите исправленный файл.</li>
+        <li><b>Страницы в файле</b> — уберите галочку «В файл» над страницей или впишите номера, например 1-3, 5.</li>
+        <li><b>Сохранить PDF</b> (или Ctrl+S) — получите исправленный файл только из выбранных страниц.</li>
       </ol>
     </div>
     <div class="card">
@@ -275,6 +296,42 @@ async function buildPdf(bytes,edits,lib){
   }
   return doc.save();
 }
+
+/* "1-3, 5, 8-" -> {idx:[0,1,2,4,7..n-1]} (0-based, sorted, unique) or {err}. Empty -> all pages. */
+function parseRange(str,n){
+  const t=String(str||"").replace(/[–—−]/g,"-").replace(/\s*-\s*/g,"-").replace(/[;\s]+/g,",").replace(/,+/g,",").replace(/^,|,$/g,"");
+  if(!t)return {idx:[...Array(n).keys()]};
+  const set=new Set();
+  for(const part of t.split(",")){
+    const m=part.match(/^(\d*)-(\d*)$/);let a,b;
+    if(m){if(!m[1]&&!m[2])return {err:"Непонятная часть «-»"};a=m[1]?+m[1]:1;b=m[2]?+m[2]:n;}
+    else if(/^\d+$/.test(part)){a=b=+part;}
+    else return {err:`Непонятная часть «${part}». Пишите номера и диапазоны: 1-3, 5`};
+    if(a>b)[a,b]=[b,a];
+    if(a<1)return {err:"Страницы нумеруются с 1"};
+    if(b>n)return {err:`Страницы ${b} нет: в документе ${n} стр.`};
+    for(let k=a;k<=b;k++)set.add(k-1);
+  }
+  return {idx:[...set].sort((x,y)=>x-y)};
+}
+/* [0,1,2,4] -> "1-3, 5"; all pages -> "" */
+function fmtRange(idx,n){
+  if(idx.length===n)return "";
+  const out=[];let i=0;
+  while(i<idx.length){let j=i;while(j+1<idx.length&&idx[j+1]===idx[j]+1)j++;
+    out.push(j>i?(idx[i]+1)+"-"+(idx[j]+1):String(idx[i]+1));i=j+1;}
+  return out.join(", ");
+}
+/* Keep only pages idx (0-based) of a PDF; returns bytes unchanged when all pages are kept. */
+async function keepPages(bytes,idx,PDFLib){
+  const src=await PDFLib.PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
+  const n=src.getPageCount();
+  if(idx.length===n&&idx.every((v,i)=>v===i))return bytes;
+  const out=await PDFLib.PDFDocument.create({updateMetadata:false});
+  for(const pg of await out.copyPages(src,idx))out.addPage(pg);
+  try{const t=src.getTitle();if(t)out.setTitle(t);const a=src.getAuthor();if(a)out.setAuthor(a);}catch(e){}
+  return out.save();
+}
 /*CORE-END*/
 </script>
 <script>
@@ -283,7 +340,7 @@ const $=s=>document.querySelector(s);
 const pdfjsLib=window.pdfjsLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc=new URL("lib/pdf.worker.min.js",document.baseURI).href;
 const CSSFAM={sans:"'PE sans', Arial, 'Liberation Sans', Helvetica, sans-serif",serif:"'PE serif', 'Times New Roman', 'Liberation Serif', Times, serif",mono:"'PE mono', 'Courier New', 'Liberation Mono', monospace"};
-const S={doc:null,bytes:null,name:"",sample:false,pages:[],zoom:1,fit:true,mode:"edit",sel:null,uid:0,downloads:undefined};
+const S={doc:null,bytes:null,name:"",sample:false,pages:[],zoom:1,fit:true,mode:"edit",sel:null,uid:0,downloads:undefined,pick:[]};
 
 /* ---------- fonts ---------- */
 const fontBytes={};
@@ -297,7 +354,7 @@ function ensureFace(st){
 
 /* ---------- helpers ---------- */
 let toastT;
-function toast(msg,err){const t=$("#toast");t.textContent=msg;t.className="toast"+(err?" err":"");t.hidden=false;clearTimeout(t._t);t._t=setTimeout(()=>t.hidden=true,err?6000:3200);}
+function toast(msg,err){const t=$("#toast");t.textContent=msg;t.className="toast"+(err?" err":"");t.hidden=false;clearTimeout(t._t);t._t=setTimeout(()=>t.hidden=true,err||msg.length>90?6500:3200);}
 const hex=a=>"#"+a.map(v=>Math.round(v).toString(16).padStart(2,"0")).join("");
 const unhex=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
 const css=a=>`rgb(${a.join(",")})`;
@@ -311,7 +368,7 @@ async function openBytes(bytes,name,sample){
   try{doc=await pdfjsLib.getDocument({data:bytes.slice(),isEvalSupported:false}).promise;}
   catch(e){toast(e&&e.name==="PasswordException"?"Файл защищён паролем — снимите пароль и откройте снова.":"Не получилось прочитать файл. Проверьте, что это PDF.",true);return;}
   if(S.doc)S.doc.destroy();
-  Object.assign(S,{doc,bytes,name,sample,pages:[],sel:null});
+  Object.assign(S,{doc,bytes,name,sample,pages:[],sel:null,pick:Array(doc.numPages).fill(true)});
   $("#fname").textContent=name;const ch=$("#fchip");ch.hidden=false;ch.className="chip"+(sample?" sample":"");ch.textContent=sample?"Пример":doc.numPages+" стр.";
   const box=$("#pages");box.innerHTML="";
   let textLines=0;
@@ -319,7 +376,8 @@ async function openBytes(bytes,name,sample){
     const proxy=await doc.getPage(i);const base=proxy.getViewport({scale:1});
     const tc=await proxy.getTextContent();
     const el=document.createElement("div");el.className="page";el.dataset.i=i-1;
-    el.innerHTML=`<span class="num">${i} / ${doc.numPages}</span><canvas></canvas><div class="layer"></div>`;
+    el.innerHTML=`<span class="num">${i} / ${doc.numPages}</span><label class="pick"><input type="checkbox" checked data-i="${i-1}" aria-label="Страница ${i} войдёт в файл"> В файл</label><canvas></canvas><div class="layer"></div>`;
+    el.querySelector(".pick input").addEventListener("change",ev=>{S.pick[i-1]=ev.target.checked;syncPick(true);});
     box.appendChild(el);
     const p={i:i-1,proxy,base,styles:tc.styles,el,canvas:el.querySelector("canvas"),layer:el.querySelector(".layer"),lines:[],rendered:0,task:null,sampled:false,fontsReady:false};
     p.lines=mergeLines(tc.items,tc.styles).map(l=>mkLine(p,l));textLines+=p.lines.length;
@@ -330,7 +388,7 @@ async function openBytes(bytes,name,sample){
     n.textContent="В этом файле нет текстового слоя (похоже на скан или текст в кривых). Существующий текст здесь не исправить, но можно добавить новый — режим «Добавить текст».";box.prepend(n);}
   const b=S.pages[0].base;const pn=paperName(b.width,b.height);
   $("#meta").innerHTML=`<span>${doc.numPages} стр. · ${textLines} строк текста</span><span>${pn?pn+" · ":""}${mm(b.width)} × ${mm(b.height)} мм</span>`;
-  $("#saveBtn").disabled=false;
+  $("#pRange").value="";syncPick(false);
   fitWidth();refreshEdits();
 }
 function mkLine(p,l){
@@ -547,11 +605,41 @@ $("#fGo").onclick=()=>{
   toast(n?`Заменено: ${n} (${lines} строк)`:"Ничего не найдено. Поиск идёт внутри одной строки и учитывает регистр.",!n);
 };
 
+/* ---------- pages to keep ---------- */
+const pickedIdx=()=>S.pick.map((v,i)=>v?i:-1).filter(i=>i>=0);
+function syncPick(writeField){
+  const n=S.pick.length,idx=pickedIdx();
+  S.pages.forEach(p=>{const on=S.pick[p.i];p.el.classList.toggle("off",!on);const cb=p.el.querySelector(".pick input");if(cb.checked!==on)cb.checked=on;});
+  if(writeField){$("#pRange").value=fmtRange(idx,n);$("#pRange").classList.remove("bad");$("#pErr").hidden=true;}
+  $("#pCount").textContent=n?`${idx.length} из ${n}`:"—";
+  const chip=$("#saveChip");chip.hidden=!n||idx.length===n;
+  chip.textContent=idx.length?"стр. "+fmtRange(idx,n):"не выбрано ни одной страницы";
+  chip.className="chip "+(idx.length?"sel":"err");chip.style.color=idx.length?"":"var(--danger)";chip.style.borderColor=idx.length?"":"var(--danger)";
+  $("#saveBtn").disabled=!n||!idx.length;
+}
+function applyRangeText(normalize){
+  if(!S.doc)return;
+  const r=parseRange($("#pRange").value,S.pick.length),err=$("#pErr");
+  if(r.err){err.textContent=r.err;err.hidden=false;$("#pRange").classList.add("bad");return;}
+  err.hidden=true;$("#pRange").classList.remove("bad");
+  const on=new Set(r.idx);S.pick=S.pick.map((_,i)=>on.has(i));syncPick(!!normalize);
+}
+$("#pRange").addEventListener("input",()=>applyRangeText(false));
+$("#pRange").addEventListener("change",()=>applyRangeText(true));
+$("#pRange").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();applyRangeText(true);}});
+$("#pAll").onclick=()=>{if(!S.doc)return;S.pick=S.pick.map(()=>true);syncPick(true);};
+$("#pInv").onclick=()=>{if(!S.doc)return;const inv=S.pick.map(v=>!v);
+  if(!inv.some(Boolean)){toast("Тогда не останется ни одной страницы — выбор не изменён");return;}S.pick=inv;syncPick(true);};
+
 /* ---------- save ---------- */
 async function ensureSampled(p){for(let k=0;k<3&&!(p.sampled&&p.fontsReady);k++){p.rendered=0;await render(p);}}
 async function save(){
   if(!S.doc)return;
   if(document.activeElement&&document.activeElement.classList.contains("ln"))document.activeElement.blur();
+  if(document.activeElement===$("#pRange"))applyRangeText(true);
+  if(!$("#pErr").hidden){toast("Поправьте номера страниц: "+$("#pErr").textContent,true);return;}
+  const keep=pickedIdx(),n=S.pick.length;
+  if(!keep.length){toast("Выберите хотя бы одну страницу для сохранения",true);return;}
   const list=allEdits();
   const btn=$("#saveBtn");btn.disabled=true;const old=btn.textContent;btn.textContent="Собираю…";
   try{
@@ -559,21 +647,25 @@ async function save(){
     const edits=list.map(ln=>{const st=style(ln);return {page:ln.p.i,x:ln.x,y:ln.y,angle:ln.angle,size:st.size,coverSize:ln.size,width:ln.width,asc:ln.asc,desc:ln.desc,
       text:ln.deleted?"":ln.text,cover:!ln.added,bg:ln.bg||(ln.auto&&ln.auto.bg)||[255,255,255],color:ln.color||(ln.auto&&ln.auto.color)||[0,0,0],
       family:st.family,bold:st.bold,italic:st.italic};});
-    const out=await buildPdf(S.bytes,edits,{PDFLib:window.PDFLib,fontkit:window.fontkit,loadFont});
-    const fname=S.name.replace(/\.pdf$/i,"")+(list.length?" (исправлено)":"")+".pdf";
+    const built=list.length?await buildPdf(S.bytes,edits,{PDFLib:window.PDFLib,fontkit:window.fontkit,loadFont}):S.bytes;
+    const out=await keepPages(built,keep,window.PDFLib);
+    const part=keep.length<n?" (стр. "+fmtRange(keep,n)+")":"";
+    const lost=[...new Set(list.filter(l=>!S.pick[l.p.i]).map(l=>l.p.i+1))];
+    const note=lost.length?` Правки на стр. ${lost.join(", ")} не вошли: ${lost.length>1?"эти страницы не выбраны":"страница не выбрана"}.`:"";
+    const fname=S.name.replace(/\.pdf$/i,"")+(list.length?" (исправлено)":"")+part+".pdf";
     const blob=new Blob([out],{type:"application/pdf"});
     const dl=await getDownloads();
     if(dl){
-      try{await dl.save({filename:fname,data:blob});toast("Файл сохранён: "+fname);}
+      try{await dl.save({filename:fname,data:blob});toast("Файл сохранён: "+fname+(keep.length<n?` — ${keep.length} из ${n} стр.`:"")+"."+note);}
       catch(e){const c=e&&e.code;if(c==="declined")toast("Сохранение отменено");else if(c==="rate_limited")toast("Окно сохранения уже открыто",true);
         else toast("Не удалось сохранить файл здесь. Откройте эту страницу в claude.ai и попробуйте снова.",true);}
     }else{
       const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();
       setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},4000);
-      toast("Файл собран. Если скачивание не началось, откройте страницу в claude.ai.");
+      toast("Файл собран"+(keep.length<n?` (${keep.length} из ${n} стр.)`:"")+". Если скачивание не началось, откройте страницу в claude.ai."+note);
     }
   }catch(e){console.error(e);toast("Не удалось собрать PDF: "+(e&&e.message||e),true);}
-  finally{btn.disabled=false;btn.textContent=old;}
+  finally{btn.textContent=old;syncPick(false);}
 }
 $("#saveBtn").onclick=save;
 document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();save();}});
