@@ -9,7 +9,7 @@ body{margin:0;font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-seri
 img{max-width:100%}
 [hidden]{display:none!important}
 </style>
-<title>Правка PDF</title>
+<title>RPDF</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -30,7 +30,7 @@ img{max-width:100%}
   --accent:#7D9BFF; --accent-ink:#0E1420; --mark:#E8C547; --mark-soft:rgba(232,197,71,.14);
   --danger:#FF8A80; --ok:#6FD39B; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 28px rgba(0,0,0,.35); color-scheme:dark}
 
-html,body{height:100%}
+html,body{min-height:100%}
 body{background:var(--desk);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.45}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--panel)}
 button,input{font:inherit;color:inherit}
@@ -57,7 +57,7 @@ button,input{font:inherit;color:inherit}
 .seg button+button{border-left:1px solid var(--rule)}
 .seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
 .zoom{display:inline-flex;align-items:center;gap:2px}
-.zoom .btn{width:34px;padding:0;justify-content:center}
+.zoom .btn.sq{width:34px;padding:0;justify-content:center}
 .zoom output{font-family:var(--f-data);font-size:12px;min-width:46px;text-align:center;font-variant-numeric:tabular-nums}
 .find{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .find input{height:32px;border:1px solid var(--rule);border-radius:8px;padding:0 9px;background:var(--desk);width:15ch;min-width:0}
@@ -73,11 +73,24 @@ button,input{font:inherit;color:inherit}
 .main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 60px}
 @media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
-.pages{display:flex;flex-direction:column;align-items:center;gap:22px;min-width:0;overflow-x:auto;padding-bottom:4px}
+.pages{display:flex;flex-direction:column;align-items:center;gap:34px;min-width:0;overflow-x:auto;padding-block:28px 4px}
 .page{position:relative;background:#fff;box-shadow:var(--shadow);flex:none}
 .page canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .page .layer{position:absolute;inset:0}
-.page .num{position:absolute;left:0;top:-18px;font-family:var(--f-data);font-size:11px;color:var(--muted);white-space:nowrap}
+.page .num{position:absolute;left:0;top:-20px;font-family:var(--f-data);font-size:11px;color:var(--muted);white-space:nowrap}
+.page .pick{position:absolute;right:0;top:-24px;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap;user-select:none}
+.page .pick input{margin:0;width:15px;height:15px;accent-color:var(--accent)}
+.page.off canvas,.page.off .layer{opacity:.28}
+.page.off .pick{color:var(--danger)}
+.page.off::after{content:"не войдёт в файл";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--f-data);font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--danger);background:var(--panel);border:1px solid var(--danger);border-radius:999px;padding:4px 12px;pointer-events:none;white-space:nowrap}
+.chip.sel{border-color:var(--accent);color:var(--accent)}
+#saveChip{max-width:min(32ch,60vw);overflow:hidden;text-overflow:ellipsis}
+.range{height:34px;border:1px solid var(--rule);border-radius:8px;padding:0 10px;background:var(--desk);font-family:var(--f-data);font-size:13px;width:100%;min-width:0;box-sizing:border-box}
+.range.bad{border-color:var(--danger)}
+.sub{font-size:12px;color:var(--muted)}
+.perr{margin:0;font-size:12px;color:var(--danger)}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px}
 .mode-add .page .layer{cursor:crosshair}
 
 .ln{position:absolute;white-space:pre;color:transparent;border-radius:1px;cursor:text;outline:none;padding:0;margin:0;
@@ -90,12 +103,20 @@ button,input{font:inherit;color:inherit}
 .ln.added{background:transparent}
 .ln.added:empty::before{content:"Новый текст";color:#9AA3B0}
 .hide-marks .ln.changed,.hide-marks .ln.added,.hide-marks .ln.deleted{box-shadow:none}
+.imgbox{position:absolute;cursor:pointer;border-radius:2px}
+.imgbox:hover{box-shadow:inset 0 0 0 2px rgba(35,70,176,.55);background:rgba(35,70,176,.06)}
+.imgbox.changed{box-shadow:inset 0 0 0 2px var(--mark)}
+.imgbox.on{box-shadow:inset 0 0 0 3px var(--accent)!important}
+.hide-marks .imgbox.changed{box-shadow:none}
+.mode-add .imgbox{pointer-events:none}
+.ictx-info{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ictx-info b{color:var(--ink);font-weight:600}
 
-.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 140px);display:flex;flex-direction:column;gap:14px;min-width:0}
-@media (max-width:900px){.rail{position:static}}
+.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + var(--barh,110px) + 14px);max-height:calc(100vh - var(--barh,110px) - 28px);overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:14px;min-width:0}
+@media (max-width:900px){.rail{position:static;max-height:none;overflow:visible}}
 .card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .card h2{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0;display:flex;justify-content:space-between;align-items:center}
-.card h2 span{font-family:var(--f-data);letter-spacing:0;color:var(--ink)}
+.card h2 span{font-family:var(--f-data);letter-spacing:0;color:var(--ink);text-transform:none}
 .edits{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;max-height:46vh;overflow:auto}
 .edits li button{width:100%;text-align:left;border:0;background:transparent;padding:7px 8px;border-radius:8px;cursor:pointer;display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 8px}
 .edits li button:hover{background:var(--desk)}
@@ -115,17 +136,23 @@ button,input{font:inherit;color:inherit}
 .toast.err{background:var(--danger);color:#fff}
 .notice{background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:12px 14px;color:var(--muted);max-width:640px}
 @media (prefers-reduced-motion:no-preference){.btn,.edits li button{transition:background .12s,border-color .12s}}
-@media (max-width:560px){.brand span{display:none}.find input{width:11ch}}
+@media (max-width:560px){.brand span{display:none}.find input{width:11ch}
+  /* on phones the text and picture panels become a bottom sheet, so the header stays small */
+  #ctx,#ictx{position:fixed;left:0;right:0;bottom:0;z-index:40;border-radius:14px 14px 0 0;border-style:solid;background:var(--panel);
+    box-shadow:0 -8px 28px rgba(0,0,0,.18);padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));max-height:60vh;overflow:auto}
+  body:has(#ctx:not([hidden])) .toast,body:has(#ictx:not([hidden])) .toast{bottom:calc(45vh + env(safe-area-inset-bottom,0px))}
+  .main{padding-bottom:45vh}}
 </style>
 </head>
 <body>
 <header class="bar" id="bar">
   <div class="row">
-    <div class="brand"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M5 2h8l5 5v13H5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M13 2v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 15.5l6.5-6.5 1.8 1.8-6.5 6.5H8z" fill="var(--mark)" stroke="currentColor" stroke-width="1.2"/></svg><span>Правка PDF</span></div>
+    <div class="brand"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M5 2h8l5 5v13H5z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M13 2v5h5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 15.5l6.5-6.5 1.8 1.8-6.5 6.5H8z" fill="var(--mark)" stroke="currentColor" stroke-width="1.2"/></svg><span>RPDF</span></div>
     <div class="file"><b id="fname">—</b><span class="chip" id="fchip" hidden></span></div>
     <div class="spacer"></div>
     <label class="btn" for="fileIn">Открыть PDF</label>
     <input type="file" id="fileIn" accept="application/pdf,.pdf" hidden>
+    <span class="chip sel" id="saveChip" hidden></span>
     <button class="btn primary" id="saveBtn" disabled>Сохранить PDF</button>
   </div>
   <div class="row">
@@ -134,9 +161,9 @@ button,input{font:inherit;color:inherit}
       <button id="mAdd" aria-pressed="false">Добавить текст</button>
     </div>
     <div class="zoom">
-      <button class="btn" id="zOut" aria-label="Уменьшить">−</button>
+      <button class="btn sq" id="zOut" aria-label="Уменьшить">−</button>
       <output id="zVal">100%</output>
-      <button class="btn" id="zIn" aria-label="Увеличить">+</button>
+      <button class="btn sq" id="zIn" aria-label="Увеличить">+</button>
       <button class="btn" id="zFit">По ширине</button>
     </div>
     <div class="spacer"></div>
@@ -161,6 +188,20 @@ button,input{font:inherit;color:inherit}
     <button class="btn" id="cRevert">Вернуть исходное</button>
     <button class="btn" id="cDel" style="color:var(--danger)">Удалить строку</button>
   </div>
+  <div class="ctx" id="ictx" hidden>
+    <span class="ictx-info" id="iInfo"></span>
+    <button class="btn" id="iDown">Скачать</button>
+    <button class="btn" id="iRepl">Заменить…</button>
+    <input type="file" id="imgIn" accept="image/*" hidden>
+    <div class="seg" role="group" aria-label="Как вставить новую картинку" id="iFit" hidden>
+      <button data-fit="contain" aria-pressed="true" title="Целиком, с полями">Вписать</button>
+      <button data-fit="cover" aria-pressed="false" title="Без полей, края обрезаются">Заполнить</button>
+      <button data-fit="stretch" aria-pressed="false" title="Без полей, пропорции меняются">Растянуть</button>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn" id="iRevert" hidden>Вернуть исходную</button>
+    <button class="btn" id="iDel" style="color:var(--danger)">Удалить картинку</button>
+  </div>
 </header>
 
 <main class="main" id="main">
@@ -173,13 +214,22 @@ button,input{font:inherit;color:inherit}
       <label class="check"><input type="checkbox" id="showMarks" checked> Подсвечивать правки</label>
       <button class="btn" id="resetAll" disabled>Сбросить все правки</button>
     </div>
+    <div class="card" id="pickCard">
+      <h2>Страницы в файле <span id="pCount">—</span></h2>
+      <label class="sub" for="pRange">Номера и диапазоны через запятую. Пусто — все страницы.</label>
+      <input id="pRange" class="range" placeholder="например 1-3, 5, 8-" autocomplete="off" spellcheck="false">
+      <p class="perr" id="pErr" hidden></p>
+      <div class="btnrow"><button class="btn" id="pAll">Все</button><button class="btn" id="pInv">Обратить выбор</button></div>
+    </div>
     <div class="card">
       <h2>Как пользоваться</h2>
       <ol class="how">
         <li><b>Щёлкните по строке</b> и исправьте текст. Enter — готово, Esc — отмена.</li>
         <li>Над страницей появится панель: размер в пунктах, жирный, курсив, цвет.</li>
         <li>Режим <b>«Добавить текст»</b> — щёлкните в пустое место страницы.</li>
-        <li><b>Сохранить PDF</b> (или Ctrl+S) — получите исправленный файл.</li>
+        <li><b>Щёлкните по картинке</b> — её можно скачать, заменить своей или удалить.</li>
+        <li><b>Страницы в файле</b> — уберите галочку «В файл» над страницей или впишите номера, например 1-3, 5.</li>
+        <li><b>Сохранить PDF</b> (или Ctrl+S) — получите исправленный файл только из выбранных страниц.</li>
       </ol>
     </div>
     <div class="card">
@@ -255,9 +305,11 @@ function coverRect(e){
 }
 
 /* edits: [{page, x,y,angle,size,width,asc,desc, text, cover, bg:[r,g,b], color:[r,g,b], family,bold,italic}] (rgb 0..255) */
-async function buildPdf(bytes,edits,lib){
+async function buildPdf(bytes,edits,lib,imgEdits){
   const {PDFLib,fontkit,loadFont}=lib;
   const doc=await PDFLib.PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
+  if(doc.isEncrypted)throw encryptedError();
+  if(imgEdits&&imgEdits.length){await applyImageEdits(doc,imgEdits,PDFLib);dropUnreachable(doc,PDFLib);}
   doc.registerFontkit(fontkit);
   const fonts={};
   const getFont=async k=>fonts[k]||(fonts[k]=doc.embedFont(await loadFont(k),{subset:true}));
@@ -275,6 +327,426 @@ async function buildPdf(bytes,edits,lib){
   }
   return doc.save();
 }
+
+/* "1-3, 5, 8-" -> {idx:[0,1,2,4,7..n-1]} (0-based, sorted, unique) or {err}. Empty -> all pages. */
+function parseRange(str,n){
+  const t=String(str||"").replace(/[‐‑‒–—−﹣－]/g,"-").replace(/\s*-\s*/g,"-").replace(/[;\s]+/g,",").replace(/,+/g,",").replace(/^,|,$/g,"");
+  if(!t)return {idx:[...Array(n).keys()]};
+  const set=new Set();
+  for(const part of t.split(",")){
+    const m=part.match(/^(\d*)-(\d*)$/);let a,b;
+    if(m){if(!m[1]&&!m[2])return {err:"Непонятная часть «-»"};a=m[1]?+m[1]:1;b=m[2]?+m[2]:n;}
+    else if(/^\d+$/.test(part)){a=b=+part;}
+    else return {err:`Непонятная часть «${part}». Пишите номера и диапазоны: 1-3, 5`};
+    if(a>b)[a,b]=[b,a];
+    if(a<1)return {err:"Страницы нумеруются с 1"};
+    if(b>n)return {err:`Страницы ${b} нет: в документе ${n} стр.`};
+    for(let k=a;k<=b;k++)set.add(k-1);
+  }
+  return {idx:[...set].sort((x,y)=>x-y)};
+}
+/* Short label for file name / chip: "1-3, 5", or "12 из 200" when the list is long. */
+function pagesLabel(idx,n){const r=fmtRange(idx,n);return r.length>32?`${idx.length} из ${n}`:r;}
+/* [0,1,2,4] -> "1-3, 5"; all pages -> "" */
+function fmtRange(idx,n){
+  if(idx.length===n)return "";
+  const out=[];let i=0;
+  while(i<idx.length){let j=i;while(j+1<idx.length&&idx[j+1]===idx[j]+1)j++;
+    out.push(j>i?(idx[i]+1)+"-"+(idx[j]+1):String(idx[i]+1));i=j+1;}
+  return out.join(", ");
+}
+function encryptedError(){const e=new Error("encrypted");e.code="encrypted";return e;}
+
+/* Prepare the source document before copying the kept pages, so that nothing from a removed page
+   can be dragged into the new file:
+   - links to removed pages are dropped, links to kept pages become explicit page links;
+   - annotations of removed pages (comments, popups, replies) are cut off; widgets lose /Parent
+     (the form itself is not carried over, values stay visible through their appearance);
+   - each kept page (and every form XObject / pattern / appearance it uses) gets its own resource
+     dictionary with only the names its content actually uses — shared resource dictionaries
+     (LibreOffice, Word) otherwise carry images and text of every page;
+   - any other reference to a removed page is cut; references to kept pages are replaced with
+     markers that keepPages turns into the new pages after copying (no orphan page copies). */
+const KEEP_MARK="RPDFkeep";
+function scrubForKeep(src,keepIdx,PDFLib){
+  const {PDFName,PDFArray,PDFDict,PDFRef,PDFNull,PDFString,PDFHexString,PDFRawStream}=PDFLib;
+  const ctx=src.context,pages=src.getPages(),N=x=>PDFName.of(x);
+  const keep=new Set(keepIdx),pageRefs=pages.map(p=>p.ref.toString());
+  const keptPos=new Map();keepIdx.forEach((pi,k)=>keptPos.set(pageRefs[pi],k));
+  const look=o=>o instanceof PDFRef?ctx.lookup(o):o;
+  const isName=(o,v)=>o instanceof PDFName&&o.asString()===v;
+  const nameStr=n=>n.asString().slice(1).replace(/#([0-9a-fA-F]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
+  const txt=o=>{try{return o.decodeText();}catch(e){return null;}};
+  const drop=new Set();
+  /* page-tree nodes and the catalog: following them would drag the whole document along */
+  try{const root=ctx.trailerInfo.Root;if(root)drop.add(root.toString());
+    const st=[look(src.catalog.get(N("Pages")))],rp=src.catalog.get(N("Pages"));if(rp instanceof PDFRef)drop.add(rp.toString());
+    while(st.length){const nd=st.pop();if(!(nd instanceof PDFDict))continue;const kids=look(nd.get(N("Kids")));
+      if(kids instanceof PDFArray)for(let k=0;k<kids.size();k++){const r=kids.get(k),o=look(r);
+        if(o instanceof PDFDict&&isName(look(o.get(N("Type"))),"/Pages")){if(r instanceof PDFRef)drop.add(r.toString());st.push(o);}}}
+  }catch(e){}
+  pages.forEach((p,i)=>{if(keep.has(i))return;drop.add(pageRefs[i]);
+    const an=look(p.node.get(N("Annots")));
+    if(an instanceof PDFArray)for(let k=0;k<an.size();k++){const r=an.get(k);if(r instanceof PDFRef)drop.add(r.toString());}});
+  const cat=src.catalog;
+  function resolveNamed(nm){
+    try{
+      if(nm instanceof PDFName){const d=look(cat.get(N("Dests")));return d instanceof PDFDict?look(d.get(nm)):undefined;}
+      const key=txt(nm);if(key==null)return;
+      const names=look(cat.get(N("Names")));const root=names instanceof PDFDict?look(names.get(N("Dests"))):null;
+      const stack=[root],seen=new Set();
+      while(stack.length){const node=stack.pop();if(!(node instanceof PDFDict)||seen.has(node))continue;seen.add(node);
+        const arr=look(node.get(N("Names")));
+        if(arr instanceof PDFArray)for(let k=0;k+1<arr.size();k+=2){const kk=look(arr.get(k));if((kk instanceof PDFString||kk instanceof PDFHexString)&&txt(kk)===key)return look(arr.get(k+1));}
+        const kids=look(node.get(N("Kids")));if(kids instanceof PDFArray)for(let k=0;k<kids.size();k++)stack.push(look(kids.get(k)));}
+    }catch(e){}
+  }
+  function explicitDest(dest){
+    let d=look(dest);
+    if(d instanceof PDFName||d instanceof PDFString||d instanceof PDFHexString)d=resolveNamed(d);
+    if(d instanceof PDFDict)d=look(d.get(N("D")));
+    if(!(d instanceof PDFArray)||d.size()<1)return null;
+    const pg=d.get(0);if(!(pg instanceof PDFRef))return null;
+    return {arr:ctx.obj(d.asArray()),ref:pg.toString()};
+  }
+
+  /* --- resources: keep only names the content uses --- */
+  const CATS=new Set(["XObject","Font","ExtGState","ColorSpace","Pattern","Shading","Properties"]);
+  const decode=st=>{
+    if(st instanceof PDFRawStream)return PDFLib.decodePDFRawStream(st).decode();
+    if(st&&typeof st.getContents==="function")return st.getContents();
+    throw new Error("no content");
+  };
+  const latin=b=>{let o="";for(let i=0;i<b.length;i+=8192)o+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return o;};
+  const namesIn=list=>{const set=new Set();
+    for(const b of list)for(const m of latin(b).matchAll(/\/([^\s\/\[\]<>(){}%]+)/g))set.add(m[1].replace(/#([0-9a-fA-F]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16))));
+    return set;};
+  function pruneRes(res,names){
+    const out=ctx.obj({});
+    for(const [key,v] of res.entries()){
+      const c=nameStr(key);
+      if(!CATS.has(c)){out.set(key,v);continue;}
+      const sub=look(v);if(!(sub instanceof PDFDict))continue;
+      const ns=ctx.obj({});let any=false;
+      for(const [k2,v2] of sub.entries())if(names.has(nameStr(k2))){ns.set(k2,v2);any=true;}
+      if(any)out.set(key,ns);
+    }
+    return out;
+  }
+  const childCache=new Map();
+  /* names: names used by this content; res: its own resources (or undefined). Returns names it
+     needs from its parent when it has no resources of its own. */
+  function settle(names,res,setRes){
+    if(!(res instanceof PDFDict))return names;
+    let changed=true;
+    while(changed){changed=false;
+      for(const c of ["XObject","Pattern","Font","ExtGState"]){
+        const sub=look(res.get(N(c)));if(!(sub instanceof PDFDict))continue;
+        for(const [k,v] of sub.entries()){if(!names.has(nameStr(k)))continue;
+          for(const n of child(look(v)))if(!names.has(n)){names.add(n);changed=true;}}
+      }
+    }
+    setRes(pruneRes(res,names));
+    return new Set();
+  }
+  function child(obj){
+    if(obj instanceof PDFDict){
+      const sub=look(obj.get(N("Subtype")));
+      if(isName(sub,"/Type3")){                       /* glyph procedures are content too */
+        if(childCache.has(obj))return childCache.get(obj);
+        childCache.set(obj,new Set());
+        const cp=look(obj.get(N("CharProcs")));const list=[];
+        if(cp instanceof PDFDict)for(const [,v] of cp.entries())list.push(decode(look(v)));
+        const r=settle(namesIn(list),look(obj.get(N("Resources"))),nd=>obj.set(N("Resources"),nd));
+        childCache.set(obj,r);return r;
+      }
+      const sm=look(obj.get(N("SMask")));               /* ExtGState with a soft mask group */
+      if(sm instanceof PDFDict){const g=look(sm.get(N("G")));return g?child(g):new Set();}
+      return new Set();
+    }
+    if(!obj||!(obj.dict instanceof PDFDict))return new Set();
+    const d=obj.dict;
+    const isForm=isName(look(d.get(N("Subtype"))),"/Form");
+    const pt=look(d.get(N("PatternType")));
+    if(!isForm&&!(pt&&pt.asNumber&&pt.asNumber()===1))return new Set();
+    if(childCache.has(obj))return childCache.get(obj);
+    childCache.set(obj,new Set());
+    const r=settle(namesIn([decode(obj)]),look(d.get(N("Resources"))),nd=>d.set(N("Resources"),nd));
+    childCache.set(obj,r);return r;
+  }
+  function apStreams(a){
+    const out=[];const ap=look(a.get(N("AP")));if(!(ap instanceof PDFDict))return out;
+    for(const [,v] of ap.entries()){const x=look(v);
+      if(x&&x.dict instanceof PDFDict)out.push(x);
+      else if(x instanceof PDFDict)for(const [,w] of x.entries()){const y=look(w);if(y&&y.dict instanceof PDFDict)out.push(y);}}
+    return out;
+  }
+
+  for(const i of keepIdx){
+    const node=pages[i].node;
+    node.delete(N("B"));                       /* article threads lead to other pages */
+    const annots=look(node.get(N("Annots")));
+    if(annots instanceof PDFArray){
+      const kept=[];
+      for(let k=0;k<annots.size();k++){
+        const ref=annots.get(k),a=look(ref);
+        let ok=!(ref instanceof PDFRef&&drop.has(ref.toString()));
+        if(ok&&a instanceof PDFDict){
+          const P=a.get(N("P"));if(P instanceof PDFRef&&drop.has(P.toString()))ok=false;
+          if(isName(look(a.get(N("Subtype"))),"/Widget"))a.delete(N("Parent"));
+          const act=look(a.get(N("A")));let dest=a.get(N("Dest")),inAct=false;
+          if(!dest&&act instanceof PDFDict&&isName(look(act.get(N("S"))),"/GoTo")){dest=act.get(N("D"));inAct=true;}
+          if(ok&&dest){const t=explicitDest(dest);
+            if(!t||!keptPos.has(t.ref)){if(inAct)a.delete(N("A"));else a.delete(N("Dest"));}  /* keep its look, drop the jump */
+            else if(inAct)act.set(N("D"),t.arr);else a.set(N("Dest"),t.arr);}
+          if(ok)for(const st of apStreams(a)){try{child(st);}catch(e){}}
+        }
+        if(ok)kept.push(ref);
+      }
+      node.set(N("Annots"),ctx.obj(kept));
+    }
+    try{
+      const c=look(node.get(N("Contents")));
+      const list=c instanceof PDFArray?c.asArray().map(look):(c?[c]:[]);
+      const names=namesIn(list.map(decode));
+      settle(names,node.Resources(),nd=>node.set(N("Resources"),nd));
+    }catch(e){/* content we cannot read: keep the page's resources as they are */}
+  }
+
+  /* --- safety net: cut references to removed pages/annotations, mark references to kept pages --- */
+  const seen=new Set(),stack=keepIdx.map(i=>pages[i].node);
+  const fix=v=>{if(!(v instanceof PDFRef))return null;const s=v.toString();
+    if(drop.has(s))return "drop";if(keptPos.has(s))return N(KEEP_MARK+keptPos.get(s));return null;};
+  while(stack.length){
+    let obj=stack.pop();
+    if(obj instanceof PDFRef){const k=obj.toString();if(seen.has(k))continue;seen.add(k);obj=ctx.lookup(obj);}
+    if(!obj)continue;
+    const dict=obj instanceof PDFDict?obj:(obj.dict instanceof PDFDict?obj.dict:null);
+    if(dict){
+      if(seen.has(dict))continue;seen.add(dict);
+      const type=look(dict.get(N("Type")));
+      if(isName(type,"/Pages"))continue;
+      const isPage=isName(type,"/Page");
+      for(const [key,v] of dict.entries()){
+        if(isPage&&key.asString()==="/Parent")continue;
+        const f=fix(v);
+        if(f==="drop"){dict.delete(key);continue;}
+        if(f){dict.set(key,f);continue;}
+        if(v instanceof PDFRef||v instanceof PDFDict||v instanceof PDFArray)stack.push(v);
+      }
+    }else if(obj instanceof PDFArray){
+      if(seen.has(obj))continue;seen.add(obj);
+      for(let k=0;k<obj.size();k++){const v=obj.get(k),f=fix(v);
+        if(f==="drop"){obj.set(k,PDFNull);continue;}
+        if(f){obj.set(k,f);continue;}
+        if(v instanceof PDFRef||v instanceof PDFDict||v instanceof PDFArray)stack.push(v);}
+    }
+  }
+}
+/* After copying: turn kept-page markers into references to the new pages. */
+function restoreKeepMarks(out,newRefs,PDFLib){
+  const {PDFName,PDFArray,PDFDict,PDFRef}=PDFLib,ctx=out.context;
+  const re=new RegExp("^/"+KEEP_MARK+"(\\d+)$");
+  const fix=v=>{if(!(v instanceof PDFName))return null;const m=v.asString().match(re);return m?newRefs[+m[1]]:null;};
+  const seen=new Set(),stack=out.getPages().map(p=>p.node);
+  while(stack.length){
+    let obj=stack.pop();
+    if(obj instanceof PDFRef){const k=obj.toString();if(seen.has(k))continue;seen.add(k);obj=ctx.lookup(obj);}
+    if(!obj||seen.has(obj))continue;seen.add(obj);
+    const dict=obj instanceof PDFDict?obj:(obj.dict instanceof PDFDict?obj.dict:null);
+    if(dict){for(const [key,v] of dict.entries()){
+        if(key.asString()==="/Parent"&&dict.get(PDFName.of("Type"))&&dict.get(PDFName.of("Type")).asString()==="/Page")continue;
+        const f=fix(v);if(f){dict.set(key,f);continue;}
+        if(v instanceof PDFRef||v instanceof PDFDict||v instanceof PDFArray)stack.push(v);}}
+    else if(obj instanceof PDFArray){for(let k=0;k<obj.size();k++){const v=obj.get(k),f=fix(v);
+        if(f){obj.set(k,f);continue;}
+        if(v instanceof PDFRef||v instanceof PDFDict||v instanceof PDFArray)stack.push(v);}}
+  }
+}
+
+/* Keep only pages idx (0-based) of a PDF, in that order. Throws code "encrypted" for protected files. */
+async function keepPages(bytes,idx,PDFLib){
+  const src=await PDFLib.PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false});
+  const n=src.getPageCount();
+  if(idx.length===n&&idx.every((v,i)=>v===i))return bytes;
+  if(src.isEncrypted)throw encryptedError();
+  scrubForKeep(src,idx,PDFLib);
+  const out=await PDFLib.PDFDocument.create({updateMetadata:false});
+  const copied=await out.copyPages(src,idx);
+  for(const pg of copied)out.addPage(pg);
+  restoreKeepMarks(out,copied.map(p=>p.ref),PDFLib);
+  try{const t=src.getTitle();if(t)out.setTitle(t);const a=src.getAuthor();if(a)out.setAuthor(a);}catch(e){}
+  return out.save();
+}
+
+/* ================= images ================= */
+/* Matrix [a b c d e f]: x'=a x + c y + e, y'=b x + d y + f. then(A,B) = apply A, then B. */
+function then(A,B){return [B[0]*A[0]+B[2]*A[1],B[1]*A[0]+B[3]*A[1],B[0]*A[2]+B[2]*A[3],B[1]*A[2]+B[3]*A[3],B[0]*A[4]+B[2]*A[5]+B[4],B[1]*A[4]+B[3]*A[5]+B[5]];}
+function latin1(b){let o="";for(let i=0;i<b.length;i+=8192)o+=String.fromCharCode.apply(null,b.subarray(i,i+8192));return o;}
+/* Minimal content-stream scanner: calls onOp(op, operands) for every operator. Inline images are skipped. */
+function scanContent(t,onOp){
+  const n=t.length,isWS=c=>c===" "||c==="\n"||c==="\r"||c==="\t"||c==="\f"||c==="\0",isDel=c=>"()<>[]{}/%".includes(c);
+  let i=0,ops=[];
+  while(i<n){
+    const ch=t[i];
+    if(isWS(ch)){i++;continue;}
+    if(ch==="%"){while(i<n&&t[i]!=="\n"&&t[i]!=="\r")i++;continue;}
+    if(ch==="("){let d=1;i++;while(i<n&&d){const c=t[i];if(c==="\\"){i+=2;continue;}if(c==="(")d++;else if(c===")")d--;i++;}ops.push(null);continue;}
+    if(ch==="<"){if(t[i+1]==="<"){i+=2;ops.push(null);continue;}const j=t.indexOf(">",i);i=j<0?n:j+1;ops.push(null);continue;}
+    if(ch===">"){i+=t[i+1]===">"?2:1;continue;}
+    if("[]{}".includes(ch)){i++;continue;}
+    if(ch==="/"){let j=i+1;while(j<n&&!isWS(t[j])&&!isDel(t[j]))j++;
+      ops.push({name:t.slice(i+1,j).replace(/#([0-9a-fA-F]{2})/g,(_,h)=>String.fromCharCode(parseInt(h,16)))});i=j;continue;}
+    let j=i;while(j<n&&!isWS(t[j])&&!isDel(t[j]))j++;
+    if(j===i){i++;continue;}
+    const w=t.slice(i,j);i=j;
+    if(/^[+-]?(\d+\.?\d*|\.\d+)$/.test(w)){ops.push(parseFloat(w));continue;}
+    if(w==="ID"){let m=i+1;
+      while(m<n){const e=t.indexOf("EI",m);if(e<0){m=n;break;}if(isWS(t[e-1])&&(e+2>=n||isWS(t[e+2]))){m=e+2;break;}m=e+2;}
+      i=m;ops=[];continue;}
+    onOp(w,ops);ops=[];
+  }
+}
+function pdfLook(ctx,PDFLib,o){return o instanceof PDFLib.PDFRef?ctx.lookup(o):o;}
+function streamBytes(st,PDFLib){
+  if(st instanceof PDFLib.PDFRawStream)return PDFLib.decodePDFRawStream(st).decode();
+  if(st&&typeof st.getContents==="function")return st.getContents();
+  throw new Error("no content");
+}
+/* All image XObjects drawn on a page (also inside forms): [{key, path:[names], ctm, w, h, filters, mask}] */
+function findImages(doc,pageIndex,PDFLib){
+  const {PDFName,PDFDict,PDFArray}=PDFLib,ctx=doc.context,look=o=>pdfLook(ctx,PDFLib,o),N=x=>PDFName.of(x);
+  const node=doc.getPages()[pageIndex].node,out=[];
+  const num=o=>{o=look(o);return o&&o.asNumber?o.asNumber():0;};
+  const filters=d=>{const f=look(d.get(N("Filter")));if(f instanceof PDFName)return [f.asString().slice(1)];
+    if(f instanceof PDFArray)return f.asArray().map(x=>{x=look(x);return x instanceof PDFName?x.asString().slice(1):"";});return [];};
+  function run(list,res,ctm0,path,depth){
+    if(depth>12)return;
+    let ctm=ctm0.slice();const st=[];
+    for(const b of list)scanContent(latin1(b),(op,a)=>{
+      if(op==="q")st.push(ctm.slice());
+      else if(op==="Q")ctm=st.pop()||ctm;
+      else if(op==="cm"&&a.length>=6&&a.slice(-6).every(x=>typeof x==="number"))ctm=then(a.slice(-6),ctm);
+      else if(op==="Do"&&a.length&&a[a.length-1]&&a[a.length-1].name!=null){
+        const name=a[a.length-1].name;
+        const xo=res instanceof PDFDict?look(res.get(N("XObject"))):null;
+        const obj=xo instanceof PDFDict?look(xo.get(N(name))):null;
+        if(!obj||!(obj.dict instanceof PDFDict))return;
+        const sub=look(obj.dict.get(N("Subtype")));const s=sub instanceof PDFName?sub.asString():"";
+        if(s==="/Image"){const p=[...path,name];
+          const im=look(obj.dict.get(N("ImageMask")));
+          out.push({key:p.join("/"),path:p,ctm:ctm.slice(),w:num(obj.dict.get(N("Width"))),h:num(obj.dict.get(N("Height"))),
+            filters:filters(obj.dict),mask:!!(im&&im.asBoolean&&im.asBoolean())});}
+        else if(s==="/Form"){
+          const m=look(obj.dict.get(N("Matrix")));const mtx=m instanceof PDFArray&&m.size()===6?m.asArray().map(num):[1,0,0,1,0,0];
+          const own=look(obj.dict.get(N("Resources")));
+          let bytes;try{bytes=streamBytes(obj,PDFLib);}catch(e){return;}
+          run([bytes],own instanceof PDFDict?own:res,then(mtx,ctm),[...path,name],depth+1);
+        }
+      }
+    });
+  }
+  const c=look(node.get(N("Contents")));
+  const list=[];
+  try{for(const x of (c instanceof PDFArray?c.asArray():c?[c]:[]))list.push(streamBytes(look(x),PDFLib));}catch(e){return out;}
+  run(list,node.Resources(),[1,0,0,1,0,0],[],0);
+  return out;
+}
+/* Follow a path of XObject names from the page: returns {ref, obj} of the last one. */
+function resolveImage(doc,pageIndex,path,PDFLib){
+  const {PDFName,PDFDict}=PDFLib,ctx=doc.context,look=o=>pdfLook(ctx,PDFLib,o),N=x=>PDFName.of(x);
+  let res=doc.getPages()[pageIndex].node.Resources(),ref=null,obj=null;
+  for(let k=0;k<path.length;k++){
+    const xo=res instanceof PDFDict?look(res.get(N("XObject"))):null;if(!(xo instanceof PDFDict))return null;
+    ref=xo.get(N(path[k]));obj=look(ref);if(!obj||!obj.dict)return null;
+    const own=look(obj.dict.get(N("Resources")));if(own instanceof PDFDict)res=own;
+  }
+  return {ref,obj};
+}
+/* Point the page (only this page) at a new XObject for this path: resource dicts and forms along the path are cloned. */
+function swapXObject(doc,pageIndex,path,newRef,PDFLib){
+  const {PDFName,PDFDict}=PDFLib,ctx=doc.context,look=o=>pdfLook(ctx,PDFLib,o),N=x=>PDFName.of(x);
+  const node=doc.getPages()[pageIndex].node;
+  let res=node.Resources(),setRes=d=>node.set(N("Resources"),d);
+  for(let k=0;k<path.length;k++){
+    if(!(res instanceof PDFDict))return false;
+    const xo=look(res.get(N("XObject")));if(!(xo instanceof PDFDict))return false;
+    const resC=res.clone(ctx),xoC=xo.clone(ctx);resC.set(N("XObject"),xoC);setRes(resC);
+    const nm=N(path[k]);
+    if(k===path.length-1){xoC.set(nm,newRef);return true;}
+    const form=look(xoC.get(nm));if(!form||!(form.dict instanceof PDFDict))return false;
+    const formC=form.clone(ctx),fref=ctx.register(formC);xoC.set(nm,fref);
+    const own=look(formC.dict.get(N("Resources")));
+    res=own instanceof PDFDict?own:resC;setRes=d=>formC.dict.set(N("Resources"),d);
+  }
+  return false;
+}
+/* Where the new picture sits inside the old unit box: contain / cover / stretch. */
+function fitBox(mode,imgAR,boxAR){
+  if(mode==="stretch")return [1,1,0,0];
+  let fx,fy;
+  if((imgAR>=boxAR)===(mode!=="cover")){fx=1;fy=boxAR/imgAR;}else{fy=1;fx=imgAR/boxAR;}
+  return [fx,fy,(1-fx)/2,(1-fy)/2];
+}
+/* imgEdits: [{page, path, mode:'contain'|'cover'|'stretch'|'delete', bytes, type:'png'|'jpg', boxAR}] */
+function bytesHash(b){let h=2166136261>>>0;for(let i=0;i<b.length;i++){h^=b[i];h=Math.imul(h,16777619)>>>0;}return b.length+":"+h;}
+async function applyImageEdits(doc,imgEdits,PDFLib){
+  const ctx=doc.context,cache=new Map();
+  for(const e of imgEdits){
+    let ops=[],res={};
+    if(e.mode!=="delete"){
+      const hk=e.type+"|"+bytesHash(e.bytes);                 /* same picture in several places: embed once */
+      let im=cache.get(hk);
+      if(!im){im=e.type==="png"?await doc.embedPng(e.bytes):await doc.embedJpg(e.bytes);cache.set(hk,im);}
+      const f=fitBox(e.mode,im.width/im.height,e.boxAR||1);
+      ops=[PDFLib.pushGraphicsState(),PDFLib.concatTransformationMatrix(f[0],0,0,f[1],f[2],f[3]),PDFLib.drawObject("Im0"),PDFLib.popGraphicsState()];
+      res={XObject:{Im0:im.ref}};
+    }
+    const form=ctx.formXObject(ops,{BBox:[0,0,1,1],Resources:res});
+    swapXObject(doc,e.page,e.path,ctx.register(form),PDFLib);
+  }
+}
+/* pdf-lib writes every object it holds, reachable or not: drop what nothing points to any more
+   (replaced or deleted pictures, old resource dictionaries) so it does not stay hidden in the file. */
+function dropUnreachable(doc,PDFLib){
+  const {PDFRef,PDFDict,PDFArray}=PDFLib,ctx=doc.context,t=ctx.trailerInfo;
+  const seen=new Set(),stack=[t.Root,t.Info,t.Encrypt].filter(Boolean);
+  while(stack.length){
+    let o=stack.pop();
+    if(o instanceof PDFRef){const k=o.toString();if(seen.has(k))continue;seen.add(k);o=ctx.lookup(o);}
+    if(!o)continue;
+    const d=o instanceof PDFDict?o:(o.dict instanceof PDFDict?o.dict:null);
+    if(d){for(const [,v] of d.entries())if(v instanceof PDFRef||v instanceof PDFDict||v instanceof PDFArray)stack.push(v);}
+    else if(o instanceof PDFArray){for(let k=0;k<o.size();k++){const v=o.get(k);if(v instanceof PDFRef||v instanceof PDFDict||v instanceof PDFArray)stack.push(v);}}
+  }
+  if(!t.Root)return;
+  for(const [ref] of ctx.enumerateIndirectObjects())if(!seen.has(ref.toString()))ctx.delete(ref);
+}
+/* Picture as a file: original JPEG bytes when possible, otherwise a one-image PDF to render to PNG. */
+async function imageForDownload(doc,pageIndex,path,PDFLib){
+  const r=resolveImage(doc,pageIndex,path,PDFLib);if(!r)throw new Error("image not found");
+  const {PDFName}=PDFLib,d=r.obj.dict,look=o=>pdfLook(doc.context,PDFLib,o);
+  const f=look(d.get(PDFName.of("Filter")));
+  const fl=f instanceof PDFLib.PDFName?[f.asString()]:f instanceof PDFLib.PDFArray?f.asArray().map(x=>String(look(x))):[];
+  const w=look(d.get(PDFName.of("Width"))).asNumber(),h=look(d.get(PDFName.of("Height"))).asNumber();
+  /* JPEG inside (possibly wrapped in ASCII85/Flate): hand out the original JPEG, no re-encoding */
+  if(fl.length&&fl[fl.length-1]==="/DCTDecode"&&!d.get(PDFName.of("SMask"))&&!d.get(PDFName.of("Mask"))&&r.obj.contents){
+    const cs=look(d.get(PDFName.of("ColorSpace")));
+    const cmyk=cs instanceof PDFName&&cs.asString()==="/DeviceCMYK";
+    if(!cmyk){try{
+      let jpg=r.obj.contents;
+      if(fl.length>1){const dd=d.clone(doc.context);dd.set(PDFName.of("Filter"),doc.context.obj(fl.slice(0,-1).map(x=>PDFName.of(x.slice(1)))));
+        dd.delete(PDFName.of("DecodeParms"));jpg=PDFLib.decodePDFRawStream(PDFLib.PDFRawStream.of(dd,r.obj.contents)).decode();}
+      if(jpg[0]===0xFF&&jpg[1]===0xD8)return {kind:"jpg",bytes:jpg,w,h};
+    }catch(e){}}
+  }
+  const tmp=await PDFLib.PDFDocument.create();
+  const ref=PDFLib.PDFObjectCopier.for(doc.context,tmp.context).copy(r.ref);
+  const pg=tmp.addPage([w,h]);
+  pg.node.setXObject(PDFName.of("Im0"),ref);
+  pg.pushOperators(PDFLib.pushGraphicsState(),PDFLib.concatTransformationMatrix(w,0,0,h,0,0),PDFLib.drawObject("Im0"),PDFLib.popGraphicsState());
+  return {kind:"pdf",bytes:await tmp.save(),w,h};
+}
 /*CORE-END*/
 </script>
 <script>
@@ -283,7 +755,7 @@ const $=s=>document.querySelector(s);
 const pdfjsLib=window.pdfjsLib;
 pdfjsLib.GlobalWorkerOptions.workerSrc=new URL("lib/pdf.worker.min.js",document.baseURI).href;
 const CSSFAM={sans:"'PE sans', Arial, 'Liberation Sans', Helvetica, sans-serif",serif:"'PE serif', 'Times New Roman', 'Liberation Serif', Times, serif",mono:"'PE mono', 'Courier New', 'Liberation Mono', monospace"};
-const S={doc:null,bytes:null,name:"",sample:false,pages:[],zoom:1,fit:true,mode:"edit",sel:null,uid:0,downloads:undefined};
+const S={doc:null,bytes:null,name:"",sample:false,pages:[],zoom:1,fit:true,mode:"edit",sel:null,uid:0,downloads:undefined,pick:[],saving:false,rangeDirty:false,lib:null,img:new Map(),isel:null};
 
 /* ---------- fonts ---------- */
 const fontBytes={};
@@ -297,7 +769,7 @@ function ensureFace(st){
 
 /* ---------- helpers ---------- */
 let toastT;
-function toast(msg,err){const t=$("#toast");t.textContent=msg;t.className="toast"+(err?" err":"");t.hidden=false;clearTimeout(t._t);t._t=setTimeout(()=>t.hidden=true,err?6000:3200);}
+function toast(msg,err){const t=$("#toast");t.textContent=msg;t.className="toast"+(err?" err":"");t.hidden=false;clearTimeout(t._t);t._t=setTimeout(()=>t.hidden=true,err||msg.length>90?6500:3200);}
 const hex=a=>"#"+a.map(v=>Math.round(v).toString(16).padStart(2,"0")).join("");
 const unhex=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16));
 const css=a=>`rgb(${a.join(",")})`;
@@ -311,7 +783,13 @@ async function openBytes(bytes,name,sample){
   try{doc=await pdfjsLib.getDocument({data:bytes.slice(),isEvalSupported:false}).promise;}
   catch(e){toast(e&&e.name==="PasswordException"?"Файл защищён паролем — снимите пароль и откройте снова.":"Не получилось прочитать файл. Проверьте, что это PDF.",true);return;}
   if(S.doc)S.doc.destroy();
-  Object.assign(S,{doc,bytes,name,sample,pages:[],sel:null});
+  for(const e of S.img.values())if(e.url)URL.revokeObjectURL(e.url);
+  for(const op of S.pages){if(op.task){try{op.task.cancel();}catch(e){}}if(op.alt)op.alt.destroy();}
+  visible.clear();
+  Object.assign(S,{doc,bytes,name,sample,protected:false,pages:[],sel:null,pick:Array(doc.numPages).fill(true),rangeDirty:false,img:new Map(),isel:null,
+    lib:window.PDFLib.PDFDocument.load(bytes,{ignoreEncryption:true,updateMetadata:false}).catch(()=>null)});
+  $("#ctx").hidden=true;$("#ictx").hidden=true;
+  $("#pRange").value="";$("#pRange").classList.remove("bad");$("#pErr").hidden=true;
   $("#fname").textContent=name;const ch=$("#fchip");ch.hidden=false;ch.className="chip"+(sample?" sample":"");ch.textContent=sample?"Пример":doc.numPages+" стр.";
   const box=$("#pages");box.innerHTML="";
   let textLines=0;
@@ -319,9 +797,10 @@ async function openBytes(bytes,name,sample){
     const proxy=await doc.getPage(i);const base=proxy.getViewport({scale:1});
     const tc=await proxy.getTextContent();
     const el=document.createElement("div");el.className="page";el.dataset.i=i-1;
-    el.innerHTML=`<span class="num">${i} / ${doc.numPages}</span><canvas></canvas><div class="layer"></div>`;
+    el.innerHTML=`<span class="num">${i} / ${doc.numPages}</span><label class="pick"><input type="checkbox" checked data-i="${i-1}" aria-label="Страница ${i} войдёт в файл"> В файл</label><canvas></canvas><div class="layer"></div>`;
+    el.querySelector(".pick input").addEventListener("change",ev=>{S.pick[i-1]=ev.target.checked;syncPick(true);});
     box.appendChild(el);
-    const p={i:i-1,proxy,base,styles:tc.styles,el,canvas:el.querySelector("canvas"),layer:el.querySelector(".layer"),lines:[],rendered:0,task:null,sampled:false,fontsReady:false};
+    const p={i:i-1,proxy,base,styles:tc.styles,el,canvas:el.querySelector("canvas"),layer:el.querySelector(".layer"),lines:[],images:[],rendered:0,task:null,sampled:false,fontsReady:false};
     p.lines=mergeLines(tc.items,tc.styles).map(l=>mkLine(p,l));textLines+=p.lines.length;
     p.layer.addEventListener("pointerdown",ev=>onLayerDown(p,ev));
     S.pages.push(p);io.observe(el);
@@ -330,8 +809,10 @@ async function openBytes(bytes,name,sample){
     n.textContent="В этом файле нет текстового слоя (похоже на скан или текст в кривых). Существующий текст здесь не исправить, но можно добавить новый — режим «Добавить текст».";box.prepend(n);}
   const b=S.pages[0].base;const pn=paperName(b.width,b.height);
   $("#meta").innerHTML=`<span>${doc.numPages} стр. · ${textLines} строк текста</span><span>${pn?pn+" · ":""}${mm(b.width)} × ${mm(b.height)} мм</span>`;
-  $("#saveBtn").disabled=false;
+  syncPick(!S.rangeDirty);
   fitWidth();refreshEdits();
+  checkProtected(doc);
+  loadImages(doc);
 }
 function mkLine(p,l){
   const ln={...l,id:++S.uid,p,text:l.str,auto:null,st:null,color:null,bg:null,deleted:false,added:false,el:null};
@@ -364,6 +845,135 @@ function layout(p){
   p.vp=p.proxy.getViewport({scale:S.zoom});
   p.el.style.width=p.vp.width+"px";p.el.style.height=p.vp.height+"px";
   for(const ln of p.lines)place(ln);
+  for(const im of p.images)placeImg(im);
+}
+
+/* ---------- images on the page ---------- */
+async function loadImages(doc){
+  const d=await S.lib;if(!d||S.doc!==doc)return;
+  for(const p of S.pages){
+    if(S.doc!==doc)return;
+    let found=[];try{found=findImages(d,p.i,window.PDFLib);}catch(e){}
+    const seen={};
+    for(const f of found){
+      const w=Math.hypot(f.ctm[0],f.ctm[1]),h=Math.hypot(f.ctm[2],f.ctm[3]);
+      if(w<6||h<6)continue;                                   /* hairlines, dots, spacers */
+      seen[f.key]=(seen[f.key]||0)+1;
+      const im={...f,p,n:p.images.length+1,boxW:w,boxH:h,el:document.createElement("div"),ov:null};
+      im.el.className="imgbox";im.el.title="Картинка — щёлкните, чтобы скачать или заменить";
+      im.el.addEventListener("pointerdown",ev=>{if(S.mode!=="edit")return;ev.stopPropagation();ev.preventDefault();
+        if(document.activeElement&&document.activeElement.classList.contains("ln"))document.activeElement.blur();selectImg(im);});
+      p.layer.prepend(im.el);p.images.push(im);
+      if(p.vp)placeImg(im);
+    }
+    await new Promise(r=>setTimeout(r,0));
+  }
+}
+const imgKey=im=>im.p.i+"|"+im.key;
+function devMatrix(im){return then(im.ctm,im.p.vp.transform);}
+function placeImg(im){
+  if(!im.p.vp)return;
+  const M=devMatrix(im);
+  const pts=[[0,0],[1,0],[0,1],[1,1]].map(([u,v])=>[M[0]*u+M[2]*v+M[4],M[1]*u+M[3]*v+M[5]]);
+  const xs=pts.map(q=>q[0]),ys=pts.map(q=>q[1]);
+  const x0=Math.min(...xs),y0=Math.min(...ys);
+  Object.assign(im.el.style,{left:x0+"px",top:y0+"px",width:(Math.max(...xs)-x0)+"px",height:(Math.max(...ys)-y0)+"px"});
+  im.el.classList.toggle("changed",S.img.has(imgKey(im)));
+}
+/* Preview = the real result: this page is rebuilt with its picture edits and drawn instead of the original. */
+async function rebuildPreview(p){
+  const tok=p.altTok=(p.altTok||0)+1;
+  const eds=[...S.img.values()].filter(e=>e.page===p.i).map(e=>({page:0,path:e.path,mode:e.mode,bytes:e.bytes,type:e.type,boxAR:e.boxAR}));
+  const drop=()=>{if(p.alt)p.alt.destroy();p.alt=null;p.altPage=null;};
+  try{
+    let d=null,pg=null;
+    if(eds.length){
+      const one=await keepPages(S.bytes,[p.i],window.PDFLib);
+      const built=await buildPdf(one,[],{PDFLib:window.PDFLib},eds);
+      if(tok!==p.altTok||!S.pages.includes(p))return;
+      d=await pdfjsLib.getDocument({data:built,isEvalSupported:false}).promise;pg=await d.getPage(1);
+      if(tok!==p.altTok||!S.pages.includes(p)){d.destroy();return;}
+    }
+    drop();p.alt=d;p.altPage=pg;p.rendered=0;render(p);
+  }catch(e){console.error(e);if(tok===p.altTok)toast("Не получилось показать замену на странице. В сохранённом файле она всё равно будет.",true);}
+}
+function refreshImgs(page){for(const p of page?[page]:S.pages)for(const im of p.images)placeImg(im);}
+const imgLocked=()=>{if(S.protected){toast("Файл защищён владельцем от изменений: картинки в нём заменить нельзя. Скачать — можно.",true);return true;}return false;};
+const FILTER_NAME={DCTDecode:"JPEG",JPXDecode:"JPEG 2000",JBIG2Decode:"JBIG2",CCITTFaxDecode:"факс (ч/б)",FlateDecode:"PNG-подобная",RunLengthDecode:"RLE",LZWDecode:"LZW"};
+function selectImg(im){
+  if(S.isel)S.isel.el.classList.remove("on");
+  S.isel=im;$("#ictx").hidden=!im;
+  if(!im)return;
+  select(null);
+  im.el.classList.add("on");
+  const f=im.filters.length?im.filters[im.filters.length-1]:"";
+  const e=S.img.get(imgKey(im));
+  $("#iInfo").innerHTML="";
+  const b=document.createElement("b");b.textContent="Картинка "+im.n;
+  $("#iInfo").append(b,` · ${im.w} × ${im.h} px${f?" · "+(FILTER_NAME[f]||f):""}${im.mask?" · маска":""} · стр. ${im.p.i+1}`+(e?(e.mode==="delete"?" · удалена":" · заменена"):""));
+  $("#iFit").hidden=!e||e.mode==="delete";$("#iRevert").hidden=!e;
+  if(e&&e.mode!=="delete")$("#iFit").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.fit===e.mode));
+}
+function setImgEdit(im,patch){
+  const k=imgKey(im),old=S.img.get(k);
+  if(patch===null){if(old&&old.url)URL.revokeObjectURL(old.url);S.img.delete(k);}
+  else{const e={page:im.p.i,path:im.path,boxAR:im.boxW/im.boxH,n:im.n,...(old||{}),...patch};
+    if(old&&old.url&&patch.url&&old.url!==patch.url)URL.revokeObjectURL(old.url);S.img.set(k,e);}
+  refreshImgs(im.p);selectImg(im);refreshEdits();rebuildPreview(im.p);
+}
+/* Any picture the browser can open -> PNG (keeps transparency) or JPEG, upright, at most 4000 px. */
+async function prepareImage(file){
+  let bmp;
+  try{bmp=await createImageBitmap(file,{imageOrientation:"from-image"});}
+  catch(e){bmp=await new Promise((ok,no)=>{const u=URL.createObjectURL(file),i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error("decode"));i.src=u;});}
+  const w0=bmp.width,h0=bmp.height,k=Math.min(1,4000/Math.max(w0,h0));
+  const cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(w0*k));cv.height=Math.max(1,Math.round(h0*k));
+  cv.getContext("2d").drawImage(bmp,0,0,cv.width,cv.height);
+  const jpg=/jpe?g/i.test(file.type);
+  const blob=await new Promise(r=>cv.toBlob(r,jpg?"image/jpeg":"image/png",0.93));
+  if(!blob)throw new Error("encode");
+  return {bytes:new Uint8Array(await blob.arrayBuffer()),type:jpg?"jpg":"png",url:URL.createObjectURL(blob)};
+}
+$("#iRepl").onclick=()=>{if(S.isel&&!imgLocked())$("#imgIn").click();};
+$("#imgIn").onchange=async ev=>{
+  const f=ev.target.files[0];ev.target.value="";const im=S.isel;if(!f||!im)return;
+  try{const r=await prepareImage(f);const old=S.img.get(imgKey(im));
+    setImgEdit(im,{mode:old&&old.mode!=="delete"?old.mode:"contain",bytes:r.bytes,type:r.type,url:r.url});
+    toast("Картинка заменена. Как вставить — «Вписать», «Заполнить» или «Растянуть» в панели картинки.");}
+  catch(e){toast("Не получилось открыть картинку. Подойдут JPEG, PNG, WebP и другие форматы, которые открывает браузер.",true);}
+};
+$("#iFit").querySelectorAll("button").forEach(b=>b.onclick=()=>{const im=S.isel;if(!im||!S.img.get(imgKey(im)))return;setImgEdit(im,{mode:b.dataset.fit});});
+$("#iDel").onclick=()=>{const im=S.isel;if(!im||imgLocked())return;setImgEdit(im,{mode:"delete",bytes:null,type:null,url:null});toast("Картинка будет удалена из файла. «Вернуть исходную» — отменить.");};
+$("#iRevert").onclick=()=>{const im=S.isel;if(!im)return;setImgEdit(im,null);};
+$("#ictx").addEventListener("pointerdown",ev=>{if(ev.target.closest("button"))ev.preventDefault();});
+$("#iDown").onclick=async()=>{
+  const im=S.isel;if(!im)return;
+  const btn=$("#iDown");btn.disabled=true;
+  try{
+    const d=await S.lib;if(!d)throw new Error("doc");
+    const r=await imageForDownload(d,im.p.i,im.path,window.PDFLib);
+    const base=S.name.replace(/\.pdf$/i,"")+` — стр. ${im.p.i+1} — картинка ${im.n}`;
+    let blob,fname;
+    if(r.kind==="jpg"){blob=new Blob([r.bytes],{type:"image/jpeg"});fname=base+".jpg";}
+    else{
+      const one=await pdfjsLib.getDocument({data:r.bytes,isEvalSupported:false}).promise;
+      const pg=await one.getPage(1);const k=Math.min(1,4096/Math.max(r.w,r.h));
+      const vp=pg.getViewport({scale:k});const cv=document.createElement("canvas");cv.width=Math.max(1,Math.round(vp.width));cv.height=Math.max(1,Math.round(vp.height));
+      await pg.render({canvasContext:cv.getContext("2d"),viewport:vp,background:"rgba(0,0,0,0)"}).promise;one.destroy();
+      blob=await new Promise(res=>cv.toBlob(res,"image/png"));fname=base+".png";
+    }
+    await offerFile(blob,fname);
+  }catch(e){console.error(e);toast("Не получилось достать картинку из файла.",true);}
+  finally{btn.disabled=false;}
+};
+async function offerFile(blob,fname){
+  const dl=await getDownloads();
+  if(dl){try{await dl.save({filename:fname,data:blob});toast("Сохранено: "+fname);}
+    catch(e){const c=e&&e.code;if(c==="declined")toast("Сохранение отменено");else if(c==="rate_limited")toast("Окно сохранения уже открыто",true);
+      else toast("Не удалось сохранить файл здесь. Откройте эту страницу в claude.ai и попробуйте снова.",true);}
+    return;}
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},4000);
 }
 
 /* ---------- render ---------- */
@@ -373,17 +983,19 @@ const io=new IntersectionObserver(es=>{for(const e of es){const p=S.pages[+e.tar
 async function render(p){
   if(p.rendered===S.zoom&&!p.task)return;
   if(p.task){p.task.cancel();p.task=null;}
-  const z=S.zoom,vp=p.proxy.getViewport({scale:z});
+  if(!S.pages.includes(p))return;
+  const src=p.altPage&&p.sampled&&p.fontsReady?p.altPage:p.proxy;
+  const z=S.zoom,vp=src.getViewport({scale:z});
   let dpr=Math.min(window.devicePixelRatio||1,2.5);
   while(vp.width*vp.height*dpr*dpr>16e6&&dpr>0.6)dpr-=0.25;
   const cv=document.createElement("canvas");cv.width=Math.floor(vp.width*dpr);cv.height=Math.floor(vp.height*dpr);
   const ctx=cv.getContext("2d",{willReadFrequently:true});
-  const task=p.proxy.render({canvasContext:ctx,viewport:vp,transform:[dpr,0,0,dpr,0,0]});p.task=task;
+  const task=src.render({canvasContext:ctx,viewport:vp,transform:[dpr,0,0,dpr,0,0]});p.task=task;
   try{await task.promise;}catch(e){if(p.task===task)p.task=null;return;}
   if(p.task!==task)return;p.task=null;
   cv.style.cssText="";p.el.replaceChild(cv,p.canvas);p.canvas=cv;p.rendered=z;
   if(!p.fontsReady){resolveFonts(p);p.fontsReady=true;}
-  if(!p.sampled){sample(p,ctx,vp,dpr);p.sampled=true;}
+  if(!p.sampled){sample(p,ctx,vp,dpr);p.sampled=true;if(p.altPage){p.rendered=0;render(p);}}
   for(const ln of p.lines)place(ln);
 }
 function resolveFonts(p){
@@ -484,6 +1096,7 @@ function onLayerDown(p,ev){
 /* ---------- context panel ---------- */
 function select(ln){
   S.sel=ln;const c=$("#ctx");c.hidden=!ln;if(!ln)return;
+  if(S.isel)selectImg(null);
   const st=style(ln);
   $("#cSize").value=+st.size.toFixed(1);
   $("#cBold").setAttribute("aria-pressed",st.bold);$("#cItal").setAttribute("aria-pressed",st.italic);
@@ -506,7 +1119,9 @@ $("#cColor").addEventListener("input",e=>{const ln=S.sel;if(!ln)return;ln.color=
 $("#cRevert").onclick=()=>{const ln=S.sel;if(!ln)return;ln.text=ln.str;ln.st=null;ln.color=null;ln.deleted=false;ln.el.textContent=ln.str;ln.el.blur();mark(ln);select(ln);refreshEdits();};
 $("#cDel").onclick=()=>{const ln=S.sel;if(!ln)return;if(ln.added){ln.el.blur();removeAdded(ln);return;}
   ln.deleted=true;ln.el.textContent=ln.str;ln.el.contentEditable="false";ln.el.classList.remove("on");mark(ln);select(null);refreshEdits();};
-document.addEventListener("pointerdown",ev=>{if(!ev.target.closest(".ln")&&!ev.target.closest("#ctx")&&!ev.target.closest(".layer"))select(null);});
+document.addEventListener("pointerdown",ev=>{
+  if(!ev.target.closest(".ln")&&!ev.target.closest("#ctx")&&!ev.target.closest(".layer"))select(null);
+  if(!ev.target.closest(".imgbox")&&!ev.target.closest("#ictx"))selectImg(null);});
 
 /* ---------- mode ---------- */
 function setMode(m){S.mode=m;$("#mEdit").setAttribute("aria-pressed",m==="edit");$("#mAdd").setAttribute("aria-pressed",m==="add");
@@ -516,8 +1131,17 @@ $("#mEdit").onclick=()=>setMode("edit");$("#mAdd").onclick=()=>setMode("add");
 /* ---------- edits list ---------- */
 function allEdits(){const out=[];for(const p of S.pages)for(const ln of p.lines)if(isChanged(ln))out.push(ln);return out;}
 function refreshEdits(){
-  const list=allEdits(),ul=$("#edits");ul.innerHTML="";
-  $("#eCount").textContent=list.length;$("#eEmpty").hidden=list.length>0;$("#resetAll").disabled=!list.length;
+  const list=allEdits(),ul=$("#edits");ul.innerHTML="";const imgs=[...S.img.values()];const total=list.length+imgs.length;
+  $("#eCount").textContent=total;$("#eEmpty").hidden=total>0;$("#resetAll").disabled=!total;
+  for(const e of imgs){const li=document.createElement("li");const b=document.createElement("button");
+    const pg=document.createElement("span");pg.className="pg";pg.textContent="с."+(e.page+1);
+    const n=document.createElement("span");n.className="new";n.textContent="Картинка "+e.n;
+    const t=document.createElement("span");t.className="tag";
+    if(e.mode==="delete")t.textContent="удалена";else{t.textContent="заменена · "+{contain:"вписать",cover:"заполнить",stretch:"растянуть"}[e.mode];t.style.color="var(--ok)";}
+    b.append(pg,n,t);
+    b.onclick=()=>{const p=S.pages[e.page];const im=p&&p.images.find(x=>x.path.join("/")===e.path.join("/"));
+      if(im){im.el.scrollIntoView({block:"center",behavior:"smooth"});selectImg(im);}};
+    li.appendChild(b);ul.appendChild(li);}
   for(const ln of list){const li=document.createElement("li");const b=document.createElement("button");
     const pg=document.createElement("span");pg.className="pg";pg.textContent="с."+(ln.p.i+1);b.appendChild(pg);
     if(ln.added){const n=document.createElement("span");n.className="new";n.textContent=ln.text;const t=document.createElement("span");t.className="tag";t.style.color="var(--ok)";t.textContent="новый текст";b.append(n,t);}
@@ -535,7 +1159,10 @@ $("#resetAll").onclick=()=>{const b=$("#resetAll");
   for(const p of S.pages){for(const ln of [...p.lines]){if(ln.added){ln.el.remove();continue;}
     ln.text=ln.str;ln.st=null;ln.color=null;ln.deleted=false;ln.el.textContent=ln.str;mark(ln);}
     p.lines=p.lines.filter(l=>!l.added);}
-  select(null);refreshEdits();toast("Все правки сброшены");};
+  for(const e of S.img.values())if(e.url)URL.revokeObjectURL(e.url);
+  const had=new Set([...S.img.values()].map(e=>e.page));
+  S.img=new Map();refreshImgs();for(const i of had)if(S.pages[i])rebuildPreview(S.pages[i]);
+  select(null);selectImg(null);refreshEdits();toast("Все правки сброшены");};
 
 /* ---------- find / replace ---------- */
 $("#fGo").onclick=()=>{
@@ -547,33 +1174,81 @@ $("#fGo").onclick=()=>{
   toast(n?`Заменено: ${n} (${lines} строк)`:"Ничего не найдено. Поиск идёт внутри одной строки и учитывает регистр.",!n);
 };
 
+/* ---------- protected files: warn right after opening ---------- */
+async function checkProtected(doc){
+  try{const d=await S.lib;
+    if(!d||!d.isEncrypted||S.doc!==doc)return;
+    S.protected=true;
+    const m=document.createElement("span");m.style.color="var(--danger)";m.textContent="Защищён владельцем от изменений";$("#meta").appendChild(m);
+    toast("Файл защищён владельцем от изменений: править его и сохранять часть страниц нельзя. Снимите защиту и откройте файл снова.",true);
+  }catch(e){}
+}
+
+/* ---------- pages to keep ---------- */
+const pickedIdx=()=>S.pick.map((v,i)=>v?i:-1).filter(i=>i>=0);
+function syncPick(writeField){
+  const n=S.pick.length,idx=pickedIdx();
+  S.pages.forEach(p=>{const on=S.pick[p.i];p.el.classList.toggle("off",!on);const cb=p.el.querySelector(".pick input");if(cb.checked!==on)cb.checked=on;});
+  if(writeField){$("#pRange").value=fmtRange(idx,n);$("#pRange").classList.remove("bad");$("#pErr").hidden=true;S.rangeDirty=false;}
+  $("#pCount").textContent=n?`${idx.length} из ${n}`:"—";
+  const chip=$("#saveChip");chip.hidden=!n||idx.length===n;
+  chip.textContent=idx.length?"стр. "+pagesLabel(idx,n):"не выбрано ни одной страницы";chip.title=idx.length?"Страницы в файле: "+fmtRange(idx,n):"";
+  chip.className="chip "+(idx.length?"sel":"err");chip.style.color=idx.length?"":"var(--danger)";chip.style.borderColor=idx.length?"":"var(--danger)";
+  $("#saveBtn").disabled=!n||!idx.length||!!S.saving;
+}
+function applyRangeText(normalize){
+  if(!S.doc||!S.rangeDirty)return;
+  const r=parseRange($("#pRange").value,S.pick.length),err=$("#pErr");
+  if(r.err){err.textContent=r.err;err.hidden=false;$("#pRange").classList.add("bad");return;}
+  err.hidden=true;$("#pRange").classList.remove("bad");
+  const on=new Set(r.idx);S.pick=S.pick.map((_,i)=>on.has(i));syncPick(!!normalize);
+  if(!normalize)S.rangeDirty=true;
+}
+$("#pRange").addEventListener("input",()=>{S.rangeDirty=true;applyRangeText(false);});
+$("#pRange").addEventListener("change",()=>applyRangeText(true));
+$("#pRange").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();applyRangeText(true);}});
+$("#pAll").onclick=()=>{if(!S.doc)return;S.pick=S.pick.map(()=>true);syncPick(true);};
+$("#pInv").onclick=()=>{if(!S.doc)return;const inv=S.pick.map(v=>!v);
+  if(!inv.some(Boolean)){toast("Тогда не останется ни одной страницы — выбор не изменён");return;}S.pick=inv;syncPick(true);};
+
 /* ---------- save ---------- */
 async function ensureSampled(p){for(let k=0;k<3&&!(p.sampled&&p.fontsReady);k++){p.rendered=0;await render(p);}}
 async function save(){
-  if(!S.doc)return;
+  if(!S.doc||S.saving)return;
   if(document.activeElement&&document.activeElement.classList.contains("ln"))document.activeElement.blur();
+  applyRangeText(true);
+  if(!$("#pErr").hidden){toast("Поправьте номера страниц: "+$("#pErr").textContent,true);return;}
+  const keep=pickedIdx(),n=S.pick.length,name=S.name,bytes=S.bytes,pick=S.pick.slice();
+  if(!keep.length){toast("Выберите хотя бы одну страницу для сохранения",true);return;}
   const list=allEdits();
-  const btn=$("#saveBtn");btn.disabled=true;const old=btn.textContent;btn.textContent="Собираю…";
+  const imgEdits=[...S.img.values()].map(e=>({page:e.page,path:e.path,mode:e.mode,bytes:e.bytes,type:e.type,boxAR:e.boxAR}));
+  const btn=$("#saveBtn");S.saving=true;btn.disabled=true;btn.textContent="Собираю…";
   try{
     for(const p of new Set(list.map(l=>l.p)))await ensureSampled(p);
     const edits=list.map(ln=>{const st=style(ln);return {page:ln.p.i,x:ln.x,y:ln.y,angle:ln.angle,size:st.size,coverSize:ln.size,width:ln.width,asc:ln.asc,desc:ln.desc,
       text:ln.deleted?"":ln.text,cover:!ln.added,bg:ln.bg||(ln.auto&&ln.auto.bg)||[255,255,255],color:ln.color||(ln.auto&&ln.auto.color)||[0,0,0],
       family:st.family,bold:st.bold,italic:st.italic};});
-    const out=await buildPdf(S.bytes,edits,{PDFLib:window.PDFLib,fontkit:window.fontkit,loadFont});
-    const fname=S.name.replace(/\.pdf$/i,"")+(list.length?" (исправлено)":"")+".pdf";
+    const built=list.length||imgEdits.length?await buildPdf(bytes,edits,{PDFLib:window.PDFLib,fontkit:window.fontkit,loadFont},imgEdits):bytes;
+    const out=keep.length===n?built:await keepPages(built,keep,window.PDFLib);
+    const part=keep.length<n?" (стр. "+pagesLabel(keep,n)+")":"";
+    const lost=[...new Set([...list.map(l=>l.p.i),...imgEdits.map(e=>e.page)].filter(i=>!pick[i]).map(i=>i+1))].sort((a,b)=>a-b);
+    const note=lost.length?` Правки на стр. ${lost.join(", ")} не вошли: ${lost.length>1?"эти страницы не выбраны":"страница не выбрана"}.`:"";
+    const fname=name.replace(/\.pdf$/i,"")+(list.length||imgEdits.length?" (исправлено)":"")+part+".pdf";
     const blob=new Blob([out],{type:"application/pdf"});
     const dl=await getDownloads();
     if(dl){
-      try{await dl.save({filename:fname,data:blob});toast("Файл сохранён: "+fname);}
+      try{await dl.save({filename:fname,data:blob});toast("Файл сохранён: "+fname+(keep.length<n?` — ${keep.length} из ${n} стр.`:"")+"."+note);}
       catch(e){const c=e&&e.code;if(c==="declined")toast("Сохранение отменено");else if(c==="rate_limited")toast("Окно сохранения уже открыто",true);
         else toast("Не удалось сохранить файл здесь. Откройте эту страницу в claude.ai и попробуйте снова.",true);}
     }else{
       const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=fname;document.body.appendChild(a);a.click();
       setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},4000);
-      toast("Файл собран. Если скачивание не началось, откройте страницу в claude.ai.");
+      toast("Файл собран"+(keep.length<n?` (${keep.length} из ${n} стр.)`:"")+". Если скачивание не началось, откройте страницу в claude.ai."+note);
     }
-  }catch(e){console.error(e);toast("Не удалось собрать PDF: "+(e&&e.message||e),true);}
-  finally{btn.disabled=false;btn.textContent=old;}
+  }catch(e){console.error(e);
+    if(e&&e.code==="encrypted")toast("Файл защищён владельцем от изменений. Править его или сохранить часть страниц нельзя — снимите защиту и откройте файл снова. Без правок можно сохранить все страницы.",true);
+    else toast("Не удалось собрать PDF: "+(e&&e.message||e),true);}
+  finally{S.saving=false;btn.textContent="Сохранить PDF";syncPick(false);}
 }
 $("#saveBtn").onclick=save;
 document.addEventListener("keydown",e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="s"){e.preventDefault();save();}});
@@ -582,6 +1257,9 @@ async function getDownloads(){
   try{S.downloads=window.claude&&window.claude.use?await window.claude.use("downloads"):null;}catch(e){S.downloads=null;}
   return S.downloads;
 }
+
+/* keep the side panel below the header, whatever panels the header shows */
+try{new ResizeObserver(()=>document.documentElement.style.setProperty("--barh",$("#bar").offsetHeight+"px")).observe($("#bar"));}catch(e){}
 
 /* ---------- file input / drop ---------- */
 async function openFile(f){
